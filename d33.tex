@@ -1,0 +1,104 @@
+\documentclass[11pt,onecolumn]{article}
+\usepackage[a4paper, top=2.6cm, bottom=2.4cm, left=3.1cm, right=3.1cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+%\usepackage[style=long]{glossaries}
+\usepackage{hyperref}
+\usepackage{amsthm}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{wasysym}
+\usepackage{enumerate}
+\usepackage{multicol}
+\usepackage{units}
+\usepackage{cancel}
+\usepackage{graphicx}
+\usepackage{psfrag}
+\usepackage{verbatim}
+\usepackage{subfigure}
+\usepackage{amssymb,amsmath,amsbsy}
+\usepackage{textcomp}
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage{float}
+\usepackage{pdfpages}
+\usepackage[font=small,format=plain,labelfont=bf,up,textfont=it,up]{caption}
+\usepackage{parskip}
+\usepackage{booktabs}
+\usepackage{xcolor}
+
+\newcommand{\sect}[1]{Section~\ref{#1}}
+\newcommand{\fig}[1]{Figure~\ref{#1}}
+\newcommand{\eq}[1]{(\ref{#1})}
+
+
+
+% Bibliography
+%\usepackage[citestyle=numeric-comp, sorting=none]{biblatex}
+%\bibliography{include/references}
+%\renewcommand{\bibfont}{\normalfont\small}
+
+% Horizontal rule command for title page
+\newcommand{\HRule}{\rule{\linewidth}{0.2mm}}
+
+% Settings (Metadata)
+\input{include/settings}
+
+% Tighter itemize environment
+\newenvironment{packed_itemize}{
+\begin{itemize}
+	\setlength{\itemsep}{1pt}
+	\setlength{\parskip}{0pt}
+	\setlength{\parsep}{0pt}
+}{\end{itemize}}
+
+% Tighter enumerate environment
+\newenvironment{packed_enumerate}{
+\begin{enumerate}
+	\setlength{\itemsep}{1pt}
+	\setlength{\parskip}{0pt}
+	\setlength{\parsep}{0pt}
+}{\end{enumerate}}
+
+% Color for text colors in .doc template
+\definecolor{prowessblue}{RGB}{0,51,102}
+\definecolor{prowessred}{RGB}{128,0,0}
+
+% Glossary
+%\input{include/Glossary}
+
+% Header and footer (defined in settings included above)
+\cfoot{\thepage}
+\lhead
+{\small \cmdDlNumber{} / \cmdDlName{}} 
+\rhead
+{ \small  }
+\renewcommand{\headrulewidth}{0pt} % Remove bar in header
+
+\pagestyle{fancy}
+
+\begin{document}
+
+% Title page
+\input{include/titlepage}
+
+% Consortium
+\input{include/consortium}
+
+% Executive summary
+\input{include/executive_summary}
+
+\tableofcontents
+\clearpage
+
+\input{include/content.tex}
+
+%\clearpage
+\bibliographystyle{plain}
+\bibliography{include/references.bib}
+
+\clearpage
+\appendix
+\input{include/appendix.tex}
+\end{document}
