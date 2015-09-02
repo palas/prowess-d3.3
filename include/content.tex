@@ -22,17 +22,49 @@ modify all the instances and we will go from having replicated code,
 to having one subset of the bugs solved in one of the instances, and
 another subset of them in the other one.
 
-On the other hand, Erlang provides a mechanism for abstracting and
-parametrising implementations at module level, this mechanism is Erlang
-behaviours.
+Erlang provides a mechanism for abstracting and parametrising implementations
+at module level: \emph{Erlang behaviours}.
 
-Erlang behaviours are composed of a behaviour definition and a number
-of behaviour instances that implement the definition.
+\subsection{\emph{Erlang behaviours}\label{sec:erlang_behaviours}}
+
+\emph{Erlang Behaviours} are a standard Erlang mechanism that allows the
+parametrisation of modules. A \emph{behaviour} is composed of:
 \begin{itemize}
-\item The \emph{behaviour definition} is expected to contain the common
-code, and provides an interface for the behaviour instances.
-\item The \emph{behaviour instances} provide the particular implementations
-and must implement the interface provided by the \emph{behaviour definition}.
+\item A \emph{behaviour definition}, which defines a series of callbacks
+that its \emph{behaviour instances} must implement. This can be done
+in one of two ways:
+
+\begin{itemize}
+\item Through \texttt{callback} declarations, which specify the expected
+callbacks and their type signatures. For example:\begin{verbatim}
+-callback terminate(Reason :: (normal | shutdown |
+                               {shutdown, term()} |
+                               term()),
+                    State :: term()) -> term().
+\end{verbatim}
+\item Through a \texttt{behaviour\_info/1} function that specifies the name
+and arity of the expected callbacks. For example:\begin{verbatim}
+behaviour_info(callbacks) ->
+                 [{init, 1}, {handle_call, 3},
+                  {handle_cast, 2}, {handle_info, 2},
+                  {terminate, 2}, {code_change, 3}];
+behaviour_info(_) -> undefined.
+\end{verbatim}
+\end{itemize}
+
+In this work we have only considered the \texttt{behaviour\_info/1}
+function because, currently, there is limited support for \texttt{callback}
+declarations by the abstract syntax tools. These two approaches are
+mutually exclusive, the Erlang compiler will complain if both are
+used at the same time.
+
+\item One or more \emph{behaviour instances} which must implement the callbacks
+defined by the \emph{behaviour definition} and contain a \texttt{behaviour}
+declaration that specifies which \emph{behaviour definition} they
+implement. \\
+Example of \texttt{behaviour} declaration:\begin{verbatim}
+-behaviour(gen_server).
+\end{verbatim}
 \end{itemize}
 
 \section{Related Work}
@@ -43,10 +75,401 @@ Diverse approaches and studies have been aimed in the past...
 \section{Approach 1}
 \label{approach1}
 
-\section{Approach 2}
-\label{approach2}
+\section{Assisted behaviour creation and unfolding with Wrangler}
 
-\section{Automatic creation of Erlang behaviours}
+In order to prevent code replication, it is usually possible and
+convenient to abstract and parametrise those common parts of the implementation
+into a single location, (typically another module), that can be invoked
+from each of the individual, (not common), parts. Unfortunately, taking
+this precaution requires an additional initial effort which may deter
+developers from adopting it, in situations where time is limited.
+
+We claim that this process can be automated to a large extent. By
+introducing automation, we intend to help reduce the friction and
+the likelihood of errors being introduced and, as a consequence, we
+expect that parametrisation will be used more broadly as a replacement
+for replication.
+
+\subsection{Overview}
+
+In this work we present a series of new refactorings for Wrangler tool
+[citation], which automate the creation and unfolding of Erlang \emph{behaviour
+instances} (see Section~\ref{sec:erlang_behaviours}). The refactorings
+are mostly written using Wrangler's \emph{DSL for composite refactorings}
+and \emph{callback interface for user-defined refactorings}, but some
+parts were implemented as internal extensions to Wrangler.
+
+The main functionality can be summarised as follows:
+\begin{itemize}
+\item Creation of a single Erlang \emph{behaviour instance} from either:
+
+\begin{itemize}
+\item An existing function in a module
+\item An expression in a module
+\end{itemize}
+\item Unfolding of a single \emph{behaviour instance} against its \emph{behaviour
+definition}
+\end{itemize}
+
+
+\subsection{\emph{Behaviour} extraction\label{sec:behaviour-extraction}}
+
+\emph{Behaviour} extraction is supported by two alternative composite
+refactorings: \emph{Expression to behaviour instance} and \emph{Function
+to behaviour instance}. Both behave similarly, but the first one expects
+the user to select an expression, and it will automatically apply
+\emph{Function Extraction} to the expression before the \emph{behaviour}
+instantiation. The second one assumes that the behaviour that must
+be extracted is already in a separate function, and expects the user
+to select it.
+
+Either way, the selected function will be moved to a new or existing
+module (the \emph{behaviour instance}). The refactoring will ensure
+that a \texttt{behaviour\_info/1} function is created if it does not
+exist, and that the function moved is added to the \texttt{behaviour\_info/1}
+function. It will also ensure that the \texttt{behaviour} declaration
+is added to the \emph{behaviour instance} if it does not have it already. 
+
+The composite refactorings internally call the following individual
+refactorings in order:
+\begin{itemize}
+\item \emph{Create behaviour instance file} --- creates the \emph{behaviour
+instance} if it does not exist. It prompts for the name of the module
+to contain the \emph{behaviour instance} (see Section~\ref{sub:create_behav_instance})
+\item \emph{Function Extraction} (only for \emph{Expression to behaviour
+instance}) --- creates a new function with the selected expression.
+It prompts for a name for the new function. No function with the provided
+name should exist in the \emph{behaviour instance} nor the \emph{behaviour
+declaration} (see Section~\ref{sub:fun_extraction})
+\item \emph{Add function to behaviour\_info} --- adds the function to the
+list of callbacks to implement by \emph{behaviour instances} (see
+Section~\ref{sub:add_callback})
+\item \emph{Move Function to Another Module} --- moves the implementation
+of the function to the \emph{behaviour instance} (see Section~\ref{sub:move_fun})
+\end{itemize}
+A limitation of this process is that the generated calls to the functions
+added to the \emph{behaviour instances} are statically targeted to
+the specified \emph{behaviour instance}, (e.g: a call will have the
+form \texttt{server:start()} where \texttt{server} is the name of
+the \emph{behaviour instance} we just extracted, instead of \texttt{Module:start()}
+where \texttt{Module} is a variable). For the \emph{behaviour} to
+be able to use several \emph{behaviour instances}, it is necessary
+that these static calls are generalised somehow.
+
+For some scenarios, one way around this starts by using the existing
+refactoring \emph{Generalise Function Definition} while selecting
+the module name of the \emph{behaviour instance} used (this is explained
+in more detail in Section~\ref{sub:adjustments-for-generalisation}).
+We decided not to automate this process because it depends heavily
+in the particular scenario, and multiple alternative possibilities
+for the parametrisation are possible, (e.g: the definition of a macro,
+or the inclusion of a variable in the state of a process, see 
+Section~\ref{sub:alternative-adjustments-for-generalisation}).
+
+
+\subsection{\emph{Behaviour} unfolding\label{sec:behaviour-unfolding}}
+
+\emph{Behaviour} unfolding aims to reverse the process of \emph{behaviour}
+extraction, i.e: the specific code in the \emph{behaviour instance}
+is combined with a copy of the generic code in the \emph{behaviour
+declaration}. A copy is made in order to ensure other \emph{behaviour
+instances} keep working. This process is supported by the composite
+refactoring \emph{Unfold behaviour instance}. This refactoring must
+be called from the \emph{behaviour instance} to unfold and it takes
+as input the name of the destination module.
+
+The composite refactoring internally calls the following individual
+refactorings in order:
+\begin{itemize}
+\item \emph{Copy module} --- copies the \emph{behaviour definition} to the
+destination module name while updating only the references from the
+current \emph{behaviour instance} (see Section~\ref{sub:copy_mod})
+\item \emph{Instantiate calls} (optional step) --- instantiates the dynamic
+calls with function names that match the \emph{behaviour} interface
+in the new copy \emph{behaviour definition}, i.e: it will modify the
+qualified calls whose module is not hard-coded by setting their target
+module to the particular \emph{behaviour definition} specified (see
+Section~\ref{sub:instantiate_calls})
+\item \emph{Move function} --- moves the functions from the \emph{behaviour
+instance} to the new copy of the \emph{behaviour definition} (see
+Section~\ref{sub:move_fun})
+\item \emph{Remove behaviour declaration} --- removes the \texttt{behaviour\_info/1}
+function from the new copy of the \emph{behaviour definition} (see
+Section~\ref{sub:remove_behav_dec})
+\end{itemize}
+A limitation of this process is that \emph{Instantiate calls} is only
+an approximate solution to the problem of dynamic calls. Even though
+this refactoring will instantiate the right calls correctly in the
+majority of scenarios, it will not remove unused variables.
+
+These variables must be removed by hand or else they will usually
+produce compilation warnings, and clutter the code. In addition, in
+the few cases where there may be dynamic calls to functions in other
+modules, (i.e: not part of the \emph{behaviour}), with names that
+match the ones in the \emph{behaviour} interface, the instantiation
+may produce wrong results.
+
+In these cases, the \emph{Instantiate calls} refactoring may be executed
+individually, and each individual instantiation can then be checked
+manually.
+
+In some cases the \emph{Instantiate calls} refactoring may not be
+necessary because the \texttt{?MODULE} macro is used for dynamic calls.
+In these cases its application can be skipped by answering ``no''
+when asked by the \emph{Unfold behaviour instance} refactoring about
+instantiating dynamic calls.
+
+
+\subsection{Basic refactorings}
+
+In this section we provide an overview of the user-defined and primitive
+refactorings used by the composite refactorings described in 
+Sections~\ref{sec:behaviour-extraction}~and~\ref{sec:behaviour-unfolding}.
+
+
+\subsubsection{Copy module\label{sub:copy_mod}}
+
+This refactoring is based on the existing refactoring \emph{Rename
+module}, and, as such, it was implemented as a primitive refactoring.
+It will copy a module and update the external references to that module.
+Unlike in the case of \emph{Rename module}, (where it would not make
+sense), with \emph{Copy module} we can specify the list of modules
+whose references we want to update. This way, the rest of modules
+would keep pointing at the old version.
+
+
+\subsubsection{Create \emph{behaviour instance} file\label{sub:create_behav_instance}}
+
+This refactoring was implemented as an user-defined refactoring. It
+takes as input a target module name. It creates a file for the module
+if it does not exist, and it adds a \texttt{behaviour} declaration
+to the file if it does not have it.
+
+
+\subsubsection{Add function to \texttt{behaviour\_info/1}\label{sub:add_callback}}
+
+This functionality was actually implemented as two alternative refactorings:
+\begin{itemize}
+\item \emph{Add function to behaviour\_info} --- adds a single pair \texttt{\{FunctionName,
+Arity\}} to \texttt{behaviour\_info}
+\item \emph{Add function name to behaviour\_info} --- adds a pair for each
+of the functions that are defined in the module and have the name
+specified (i.e: independently of their arity)
+\end{itemize}
+Both versions of the refactoring were implemented as user-defined
+refactorings. Both create the \texttt{behaviour\_info} function if
+it does not exist, and then add the functions specified to the list
+of callbacks in it.
+
+In order for the result of this refactoring to work, there must not
+be any callback definitions in the \emph{behaviour definition} module.
+
+
+\subsubsection{Remove \texttt{behaviour} declaration\label{sub:remove_behav_dec}}
+
+This refactoring will search for the function \texttt{behaviour\_info/1}
+and it will delete its implementation and remove it from every \texttt{export}
+declaration in the module. If an \texttt{export} declaration only
+contains that function, it will also be deleted.
+
+It was implemented as an user-defined refactoring.
+
+
+\subsubsection{Instantiate calls\label{sub:instantiate_calls}}
+
+This refactoring tries to instantiate dynamic calls that target functions
+of the \emph{behaviour} interface. It does so by searching for qualified
+function calls with a target function name that corresponds to a function
+from the \emph{behaviour} interface but with a module that is not
+defined by an atom, (e.g: defined by a variable or a macro). And it
+replaces the module with the name of the \emph{behaviour instance}
+provided.
+
+It was implemented as an user-defined refactoring.
+
+
+\subsubsection{Move Function to Another Module\label{sub:move_fun}}
+
+This refactoring was already part of Wrangler. It takes a function
+and moves it with its local dependencies to a different module while
+ensuring that all the references to the old function are updated.
+It will also add the function to the list in the \texttt{export} declaration
+if necessary.
+
+
+\subsubsection{Function Extraction\label{sub:fun_extraction}}
+
+This refactoring was already part of Wrangler. It takes an expression
+an creates a new function for it. It also adds a parameter to the
+function for each unbound variable within the expression.
+
+
+\subsection{Example}
+
+In this section we will go through a simple example of how the refactorings
+described can be used to extract and unfold a \emph{behaviour instance}.
+
+
+\subsubsection{Creating a \emph{behaviour} from scratch}
+
+In Figure~\ref{fig:initial_code} we have provided a simple module
+called \texttt{bar}. This module has two functions. The function \texttt{bar/0}
+has the common behaviour, and the function \texttt{foo/0} has the
+exclusive behaviour. In our case the exclusive behaviour is isolated
+in a separate function, because of this we can set the cursor to point
+to the function \texttt{foo/0} and use the refactoring \emph{Function
+to behaviour instance}. If instead the function \texttt{bar/0} was
+defined as follows:
+
+\begin{verbatim}
+bar() -> 42 + 1.
+\end{verbatim}
+
+We could still select the number 42, use the refactoring \emph{Expression
+to behaviour instance}, and still obtain the same result.
+
+\begin{figure}
+\label{fig:initial_code}\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:initial_code},
+language=erlang]{figures/assisted_beh/code/step1/bar.erl}
+
+\caption{Initial code}
+\end{figure}
+
+
+When we execute the refactoring \emph{Function to behaviour instance},
+we are asked about the ``Destination module'' which in our case
+we called \texttt{new}. The refactoring will modify the module \texttt{bar}
+to include the \texttt{behaviour\_info/1} function with our function
+\texttt{foo/0} listed in it, and a new module \texttt{new} has been
+created that contains the function \texttt{foo/0} and a \texttt{behaviour}
+declaration that points to the module \texttt{bar}, (Figure~\ref{fig:after_ref}).
+
+\begin{figure}
+\label{fig:after_ref}%
+\begin{minipage}[t]{0.65\columnwidth}%
+\lstinputlisting[breaklines=true,captionpos=b,frame=tbl,label={lst:bar_after_ref},language=erlang]{
+figures/assisted_beh/code/step2/bar.erl}%
+\end{minipage}%
+\begin{minipage}[t]{0.35\columnwidth}%
+\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:new_after_ref},language=erlang,showlines=true]{
+figures/assisted_beh/code/step2/new.erl}%
+\end{minipage}
+
+\caption{Behaviour definition and instance after extraction}
+\end{figure}
+
+
+
+\subsubsection{Adjustments for generalisation\label{sub:adjustments-for-generalisation}}
+
+As stated before, we can see that a limitation of the refactoring
+is that the call to function \texttt{foo/0} in \texttt{bar/0} has
+the module \texttt{new} hard-coded. This would be a problem if we
+wanted to replicate the module \texttt{new} to generate more \emph{behaviour
+instances}, (\texttt{bar} is not generic enough).
+
+In order to solve this, we can generalise the call by, for example,
+selecting the module qualifier \texttt{new} in \texttt{bar/0}, and
+applying the refactoring \emph{Generalise Function Definition}, (in
+our case with the parameter name \texttt{Module}), and then moving
+the generated \texttt{bar/0} function to the module \texttt{new} by
+using the refactoring \emph{Move Function to Another Module} twice
+(once to move \texttt{bar/0} to \texttt{new}, and once to bring \texttt{bar/1}
+back to \texttt{bar} from \texttt{new}).
+
+This procedure leaves us with the modules \texttt{bar} and \texttt{new}
+shown in Figure~\ref{fig:manual_adj}.
+
+\begin{figure}
+\label{fig:manual_adj}%
+\begin{minipage}[t]{0.6\columnwidth}%
+\lstinputlisting[breaklines=true,captionpos=b,frame=tbl,label={lst:bar_manual_adj},language=erlang]{
+figures/assisted_beh/code/step5/bar.erl}%
+\end{minipage}%
+\begin{minipage}[t]{0.4\columnwidth}%
+\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:new_manual_adj},language=erlang,showlines=true]{
+figures/assisted_beh/code/step5/new.erl}%
+\end{minipage}
+
+\caption{Behaviour definition and instance after adjustments for generalisation}
+\end{figure}
+
+
+
+\subsubsection{Alternative adjustments for generalisation\label{sub:alternative-adjustments-for-generalisation}}
+
+The generalisation process described in Section~\ref{sub:adjustments-for-generalisation}
+was not automated because it can be carried out by using several alternative
+approaches which, in some cases, depend on the context of the implementation.
+If the behaviour to use can be decided at compilation time it may
+be generalised through the use of a macro (see Figure~\ref{fig:bar_manual_adj_b}).
+\begin{figure}
+\label{fig:bar_manual_adj_b}\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:bar_manual_adj_b},
+language=erlang]{figures/assisted_beh/code/step5b/bar.erl}
+
+\caption{Alternative adjustments for generalisation 1}
+\end{figure}
+If the behaviour represents a server, like is the case of \texttt{gen\_server},
+the name of the \emph{behaviour instance} can be stored in the state
+of the server or on the server dictionary (see Figure~\ref{fig:bar_manual_adj_c}).
+\begin{figure}
+\label{fig:bar_manual_adj_c}\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:bar_manual_adj_c},
+language=erlang]{figures/assisted_beh/code/step5c/bar.erl}
+
+\caption{Alternative adjustments for generalisation 2}
+\end{figure}
+
+
+Both alternatives remove the necessity of passing the name of the
+\emph{behaviour instance} as a parameter. In exchange, the first approach
+requires the decision to be taken at compilation time, (which is not
+always possible), and the second one relies on side effects, (which
+may eventually lead to integration errors that are harder to track).
+
+
+\subsubsection{Unfolding a \emph{behaviour instance}}
+
+For reverting the process we can call the refactoring \emph{Unfold
+behaviour instance} from the \emph{behaviour instance} module. We
+will be asked for a name to give to the resulting module, (in our
+case we chose \texttt{bar\_new}), and whether we want to point all
+dynamically-qualified callbacks to \texttt{new}, (in our case we chose
+\texttt{yes}, in order to revert the adjustments made in Section~\ref{sub:adjustments-for-generalisation}).
+
+This will produce a module \texttt{bar\_new} like the one shown in
+Figure~\ref{fig:unfold_result}.
+
+\begin{figure}
+\label{fig:unfold_result}\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:unfold_result},
+language=erlang]{figures/assisted_beh/code/step6/bar_new.erl}
+
+\caption{Result of unfolding}
+\end{figure}
+
+
+
+\subsubsection{Removing spurious parameters}
+
+We can see that both \texttt{bar/0} and \texttt{bar/1} in Figure~\ref{fig:unfold_result}
+behave as \texttt{bar/0} in the Figure~\ref{fig:initial_code}, but
+\texttt{bar/1} has a spurious parameter which will produce a warning.
+
+For cleaner code we recommend manually removing the \texttt{bar/0}
+function and transforming the function \texttt{bar/1} into \texttt{bar/0}
+by removing the unused \texttt{Module} parameter, (whenever it is
+unused, as is our case).
+
+By doing this we will be left with the module \texttt{bar\_new} shown
+in Figure~\ref{fig:final_result}.
+
+\begin{figure}
+\label{fig:final_result}\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:final_result},
+language=erlang]{figures/assisted_beh/code/step7/bar_new.erl}
+
+\caption{Result of unfolding after removing spurious parameter}
+\end{figure}
+
+\section{Automatic behaviour creation with Wrangler}
 
 When developing software, we sometimes realise that we should add
 abstraction after we have already implemented two pieces of similar
