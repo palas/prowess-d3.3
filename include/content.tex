@@ -9,7 +9,7 @@ a system, which are parametrized or configured in different ways.
 \subsection{Behaviour refactoring}
 
 The abstraction principle tells us that we must not repeat code. As
-stated by {[}citation{]} ``Each significant piece of functionality
+stated by \cite{pierce2002types} ``Each significant piece of functionality
 in a program should be implemented in just one place in the source
 code. Where similar functions are carried out by distinct pieces of
 code, it is generally beneficial to combine them into one by abstracting
@@ -93,11 +93,12 @@ for replication.
 \subsection{Overview}
 
 In this work we present a series of new refactorings for Wrangler tool
-[citation], which automate the creation and unfolding of Erlang \emph{behaviour
-instances} (see Section~\ref{sec:erlang_behaviours}). The refactorings
-are mostly written using Wrangler's \emph{DSL for composite refactorings}
-and \emph{callback interface for user-defined refactorings}, but some
-parts were implemented as internal extensions to Wrangler.
+\cite{li2008refactoring}, which automate the creation and unfolding of Erlang
+\emph{behaviour instances} (see Section~\ref{sec:erlang_behaviours}).
+The refactorings are mostly written using Wrangler's \emph{DSL for composite
+refactorings} \cite{li2012domain} and \emph{callback interface for
+user-defined refactorings} \cite{li2011user}, but some parts were implemented
+as internal extensions to Wrangler.
 
 The main functionality can be summarised as follows:
 \begin{itemize}
@@ -114,14 +115,18 @@ definition}
 
 \subsection{\emph{Behaviour} extraction\label{sec:behaviour-extraction}}
 
-\emph{Behaviour} extraction is supported by two alternative composite
-refactorings: \emph{Expression to behaviour instance} and \emph{Function
-to behaviour instance}. Both behave similarly, but the first one expects
-the user to select an expression, and it will automatically apply
-\emph{Function Extraction} to the expression before the \emph{behaviour}
-instantiation. The second one assumes that the behaviour that must
-be extracted is already in a separate function, and expects the user
-to select it.
+\emph{Behaviour} extraction creates a new \emph{behaviour callback} from an existing
+piece of code, and it moves the code to a new or existing \emph{behaviour instance} so
+that it is used by the \emph{behaviour instance} to implement the new
+\emph{behaviour callback}.
+
+It is supported by two alternative composite refactorings: \emph{Expression
+to behaviour instance} and \emph{Function to behaviour instance}. Both
+behave similarly, but the first one expects the user to select an expression
+and it will automatically apply \emph{Function Extraction} to the expression
+before the \emph{behaviour} instantiation. The second one assumes that the
+behaviour callback implementation that must be extracted is already in a
+separate function, and expects the user to select it.
 
 Either way, the selected function will be moved to a new or existing
 module (the \emph{behaviour instance}). The refactoring will ensure
@@ -130,7 +135,7 @@ exist, and that the function moved is added to the \texttt{behaviour\_info/1}
 function. It will also ensure that the \texttt{behaviour} declaration
 is added to the \emph{behaviour instance} if it does not have it already. 
 
-The composite refactorings internally call the following individual
+Internally, the composite refactorings call the following individual
 refactorings in order:
 \begin{itemize}
 \item \emph{Create behaviour instance file} --- creates the \emph{behaviour
@@ -160,6 +165,7 @@ For some scenarios, one way around this starts by using the existing
 refactoring \emph{Generalise Function Definition} while selecting
 the module name of the \emph{behaviour instance} used (this is explained
 in more detail in Section~\ref{sub:adjustments-for-generalisation}).
+
 We decided not to automate this process because it depends heavily
 in the particular scenario, and multiple alternative possibilities
 for the parametrisation are possible, (e.g: the definition of a macro,
@@ -329,10 +335,10 @@ We could still select the number 42, use the refactoring \emph{Expression
 to behaviour instance}, and still obtain the same result.
 
 \begin{figure}
-\label{fig:initial_code}\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:initial_code},
+\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:initial_code},
 language=erlang]{figures/assisted_beh/code/step1/bar.erl}
 
-\caption{Initial code}
+\caption{Initial code\label{fig:initial_code}}
 \end{figure}
 
 
@@ -345,7 +351,6 @@ created that contains the function \texttt{foo/0} and a \texttt{behaviour}
 declaration that points to the module \texttt{bar}, (Figure~\ref{fig:after_ref}).
 
 \begin{figure}
-\label{fig:after_ref}%
 \begin{minipage}[t]{0.65\columnwidth}%
 \lstinputlisting[breaklines=true,captionpos=b,frame=tbl,label={lst:bar_after_ref},language=erlang]{
 figures/assisted_beh/code/step2/bar.erl}%
@@ -355,7 +360,7 @@ figures/assisted_beh/code/step2/bar.erl}%
 figures/assisted_beh/code/step2/new.erl}%
 \end{minipage}
 
-\caption{Behaviour definition and instance after extraction}
+\caption{Behaviour definition and instance after extraction\label{fig:after_ref}}
 \end{figure}
 
 
@@ -381,7 +386,6 @@ This procedure leaves us with the modules \texttt{bar} and \texttt{new}
 shown in Figure~\ref{fig:manual_adj}.
 
 \begin{figure}
-\label{fig:manual_adj}%
 \begin{minipage}[t]{0.6\columnwidth}%
 \lstinputlisting[breaklines=true,captionpos=b,frame=tbl,label={lst:bar_manual_adj},language=erlang]{
 figures/assisted_beh/code/step5/bar.erl}%
@@ -391,7 +395,7 @@ figures/assisted_beh/code/step5/bar.erl}%
 figures/assisted_beh/code/step5/new.erl}%
 \end{minipage}
 
-\caption{Behaviour definition and instance after adjustments for generalisation}
+\caption{Behaviour definition and instance after adjustments for generalisation\label{fig:manual_adj}}
 \end{figure}
 
 
@@ -404,19 +408,19 @@ approaches which, in some cases, depend on the context of the implementation.
 If the behaviour to use can be decided at compilation time it may
 be generalised through the use of a macro (see Figure~\ref{fig:bar_manual_adj_b}).
 \begin{figure}
-\label{fig:bar_manual_adj_b}\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:bar_manual_adj_b},
+\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:bar_manual_adj_b},
 language=erlang]{figures/assisted_beh/code/step5b/bar.erl}
 
-\caption{Alternative adjustments for generalisation 1}
+\caption{Alternative adjustments for generalisation 1\label{fig:bar_manual_adj_b}}
 \end{figure}
 If the behaviour represents a server, like is the case of \texttt{gen\_server},
 the name of the \emph{behaviour instance} can be stored in the state
 of the server or on the server dictionary (see Figure~\ref{fig:bar_manual_adj_c}).
 \begin{figure}
-\label{fig:bar_manual_adj_c}\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:bar_manual_adj_c},
+\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:bar_manual_adj_c},
 language=erlang]{figures/assisted_beh/code/step5c/bar.erl}
 
-\caption{Alternative adjustments for generalisation 2}
+\caption{Alternative adjustments for generalisation 2\label{fig:bar_manual_adj_c}}
 \end{figure}
 
 
@@ -440,10 +444,10 @@ This will produce a module \texttt{bar\_new} like the one shown in
 Figure~\ref{fig:unfold_result}.
 
 \begin{figure}
-\label{fig:unfold_result}\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:unfold_result},
+\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:unfold_result},
 language=erlang]{figures/assisted_beh/code/step6/bar_new.erl}
 
-\caption{Result of unfolding}
+\caption{Result of unfolding\label{fig:unfold_result}}
 \end{figure}
 
 
@@ -463,10 +467,10 @@ By doing this we will be left with the module \texttt{bar\_new} shown
 in Figure~\ref{fig:final_result}.
 
 \begin{figure}
-\label{fig:final_result}\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:final_result},
+\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:final_result},
 language=erlang]{figures/assisted_beh/code/step7/bar_new.erl}
 
-\caption{Result of unfolding after removing spurious parameter}
+\caption{Result of unfolding after removing spurious parameter\label{fig:final_result}}
 \end{figure}
 
 \section{Automatic behaviour creation with Wrangler}
@@ -486,8 +490,7 @@ user, which are assumed to be structurally similar, and possibly the
 result of copying and modifying one of them.
 
 This mechanism has been implemented and distributed as a refactoring
-included in Wrangler refactoring tool for Erlang {[}citation{]}, and
-its source is available at {[}citation{]}. Even though there is no
+included in Wrangler refactoring tool for Erlang. Even though there is no
 guarantee about this, the refactoring aims to not alter the behaviour
 of the two modules targeted from the point of view of their external
 interface, and it should only affect the organisation of the code
@@ -511,11 +514,11 @@ in clone detection it is often more effective to focus on the sequential
 behaviour.
 
 The previous work that we have found which is most similar to the
-one presented here is the ladiff tool {[}citation{]}, which strongly
+one presented here is \cite{chawathe1996change}, which strongly
 inspired this work. Tree comparison has been researched extensively
-{[}citations{]}, a big part targeted at XML {[}citation{]}. Of course,
-the nature of XML is quite different to the one of Erlang, but they
-both share the use of nested structures and semi-structured data.
+\cite{bille2005survey}, a big part targeted at XML \cite{peters2005change}.
+Of course, the nature of XML is quite different to the one of Erlang,
+but they both share the use of nested structures and semi-structured data.
 
 
 \subsection{Overview}
@@ -534,20 +537,20 @@ the common parts.
 
 In the first stage we apply a tree matching algorithm to find correspondences
 between the ASTs, of both modules. In the current implementation we
-have used the top-down tree matching algorithm described in {[}citation{]},
+have used the top-down tree matching algorithm described in \cite{al2005diffx},
 because it is both easy to implement and effective. But we have encapsulated
 the tree matching algorithm in a way that would allow it to be replaced
 easily by other algorithms in the future.
 
 In particular, we have found some more recent and heavily tuned algorithms
-that might work better for our approach, but we have discarded them
-for this work because, due to their complexity, reimplementing them
-would have been much more costly, and in the cases where there exist
-public implementations of them, they are written in different languages,
-(usually Java), which would have made the integration more difficult
-and cumbersome.
+that might be have been more appropriate for our approach
+\cite{falleri2014fine,fluri2007change}, but we
+discarded them because, due to their complexity, reimplementing them would
+have been much more costly, and in the cases where there exist public
+implementations of them, they are written in different languages, which
+would have made the integration more difficult and cumbersome.
 
-The only consideration for applying tree matching to our problem is
+One specific consideration for applying tree matching to our problem is
 deciding how to compare individual nodes of the syntax tree. We use
 a simple dual approach:
 \begin{itemize}
@@ -568,9 +571,9 @@ we show what a possible tree mapping representation would look like,
 where nodes with the same name are considered equal.
 
 \begin{figure}
-\begin{centering}
+\centering
 \includegraphics[width=0.66\textwidth]{figures/automatic_beh_inf/diagrams/dia2}
-\par\end{centering}
+\par
 
 \caption{Graphical representaton of tree mapping\label{fig:tree-mapping-example}}
 \end{figure}
@@ -615,9 +618,9 @@ In Figure~\ref{fig:tree-clustering-example} we show how the trees
 in Figure~\ref{fig:tree-mapping-example} would be clustered.
 
 \begin{figure}
-\begin{centering}
+\centering
 \includegraphics[width=0.69\textwidth]{figures/automatic_beh_inf/diagrams/dia3}
-\par\end{centering}
+\par
 
 \caption{Graphical representation of tree clustering\label{fig:tree-clustering-example}}
 \end{figure}
@@ -692,9 +695,9 @@ and linked, where the dashed node I in Version 2 is the rendering
 of an indirection cluster.
 
 \begin{figure}
-\begin{centering}
+\centering
 \includegraphics[width=1\textwidth]{figures/automatic_beh_inf/diagrams/dia5}
-\par\end{centering}
+\par
 
 \caption{Graphical representation of linking\label{fig:cluster-linking-example}}
 
@@ -963,7 +966,7 @@ root of the module.
 
 During postprocessing, we just have to generate the simplified function
 header around the function call that is left in the place where the
-original function was, (example?).
+original function was.
 
 
 \subsubsection{Function arity collision\label{sub:function-arity-collision}}
@@ -974,7 +977,7 @@ is the one that called the current function in the first place. For
 Erlang to know which module to call we parametrise the destination
 module of the function calls in the common module with a variable,
 passed as a parameter by the calling module. This variable will contain
-the name of the module as an atom at any particular time, (example?).
+the name of the module as an atom at any particular time.
 
 The solution is simple, but adding a parameter to common functions
 will still modify its arity. This is not a problem when the names
