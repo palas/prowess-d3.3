@@ -67,13 +67,15 @@ Example of \texttt{behaviour} declaration:\begin{verbatim}
 \end{verbatim}
 \end{itemize}
 
+\subsection{Extended Finite State Machine Inference}
+
+[FIXME: introduction]
+[previous deliverables]
+
 \section{Related Work}
 \label{related_work}
 
 Diverse approaches and studies have been aimed in the past...
-
-\section{Approach 1}
-\label{approach1}
 
 \section{Assisted behaviour creation and unfolding with Wrangler}
 
@@ -990,6 +992,159 @@ It is necessary to have this in consideration, and rename one of the
 clashing functions as soon as this happens, in order to avoid altering
 the behaviour of the original code.
 
+\section{EFSM Inference}
+\label{EFSMInference}
+
+\subsection{EFSM Semantics}
+\label{EFSMSemantics}
+
+Extended Finite State Machines extend on conventional Finite State Machines by incorporating a \emph{data state} in addition to the \emph{control flow} state of the standard machine. This data state is described in \cite{EFSMs} as an n-dimensional space $D_{1} .. D_{n}$ that can store values. The transition labels are extended to incorporate \emph{guards} (called \emph{enabling functions} in \cite{EFSMs}) that are boolean functions over the data space. The available transitions of the machine depend not only on its control flow state (as is the case for FSMs) but also on its data state, as some transitions may be prevented by their guards. Additionally, EFSM transition labels contain \emph{update} transformations that modify the data state if the transition is executed. 
+
+The model of EFSMs used in this paper extends on that from \cite{EFSMs}, where the guard and update transitions operated solely on the data state. The model used here makes the guard and update transitions functions over both the data state and the inputs. This allows the machine to express guards on parameterised, named events, and to incorporate input parameters into its data state.
+  
+An EFSM is formally defined as an 9-tuple $M = (S,L,I,O,D,G,U,F,T)$ where:
+
+\begin{itemize}
+\item{$S$ is a set of symbolic states}
+\item{$L$ is an alphabet of event labels}
+\item{$I$ is a vector space of inputs, $i_{1} .. i_{n}$}
+\item{$O$ is a vector space of outputs, $o_{1} .. o_{n}$}
+\item{$D$ is a vector space $r_{1} .. r_{n}$ that represents the internal \emph{data state} as a series of registers}
+\item{$G$ is a set of boolean guard functions $g_{i} : (I \times D) \fun \bool$}
+\item{$U$ is a set of update functions that compute a new data state from the inputs and the previous data state $u_{i} : (I \times D) \fun D$}
+\item{$F$ is a set of output computation functions that produce the outputs from the data state and input parameters $f_{i} : (I \times D) \fun O$}
+\item{$T$ is a transition matrix $T : (S \times S) \fun \powerset (L \times G \times U \times F)$}
+\end{itemize}
+
+This structure is very similar to the \emph{Stream X-Machine} presented in \cite{StreamXMachines}, only it does not model the \emph{streams} of inputs and outputs, instead treating them as instantaneous, external actions.
+
+EFSMs are presented throughout this document as graphs, with the nodes representing the symbolic (or control flow) states from the set $S$, and the transitions labeled with representations of the $(L \times G)$ and $(U \times F)$ mappings for that transition. These are presented as a comma separated list of guard functions in square brackets, followed by a slash, and then a comma separated list of output and update functions in square brackets.
+
+The update and output functions use the assignment syntax $:=$ to identify the value in the vector space that is computed. Any data state variables not computed explicitly are defined to be unchanged from their value before the transition; any input or output values that are not computed are assumed to be undefined (i.e. that input parameter is not present or that output value is not produced in this transition). Outputs and updates are represented using the same syntax. Outputs are presented immediately after the slash ($/$), while updates are inside square brackets.
+
+The general form of a transition is: 
+
+\begin{center}
+$s_n \xrightarrow{e[g_1, .. g_n]/o_1, .. o_n[u_1, .. u_n]} s_m$ 
+\end{center}
+
+The arrow above represents a transition from state $S_n$ to $S_m$ with the event label $e$, restricted by guard expressions $g_1$ through $g_n$, producing outputs defined by $o_1$ through $o_n$, and updating the data state according to $u_1$ through $u_n$. The guard expressions are logically conjoined --- i.e. they must all be true for the transition to be allowed. Similarly, the output and update expressions should not be contradictory. In practice there will be one output or update expression for each output produced and each data state register that is altered. For example:
+
+\begin{center}
+$s_n \xrightarrow{vend[r_{2} \geq 100]/o_{1} :=r_{1}[r_{2} := r_{2} - 100]} s_m$
+\end{center}
+
+This arrow represents a transition that occurs with the event $vend$ when $r2$ is greater than 100, and produces the output with a value from the data space variable $r1$, and updates the data space variable $r2$ by subtracting 100 from the previous value. If there are no guard expressions or no outputs or updates then the relevant section can be omitted entirely:
+
+\begin{center}
+$s_1 \xrightarrow{select[i_{1}="coke"]} s_2$
+
+$s_4 \xrightarrow{vend/o_{1} := r_{1}} s_5$
+\end{center}
+
+A simple EFSM model of a vending machine is shown in \fig{fig:vendsimple}. This shows a machine which begins with a $select$ operation that stores its input values ($i_1$ - the chosen drink) in data state register $r_1$. Then it allows $coin$ operations and increases the value of $r_2$ by the value of $i_1$ (the value of the inserted coin). A $vend$ operation is prevented by a guard expression until the value of $r_2$ reaches or exceeds 100. At this point a $vend$ operation can be performed which will decrease $r_2$ by 100 and output the selected product (stored in $r_1$).
+
+\begin{figure}[here]
+\begin{center}
+\includegraphics[width=7cm]{vend-real.pdf}
+\caption{A simple vending machine EFSM}
+\label{fig:vendsimple}
+\end{center}
+\end{figure}
+
+This model doesn't define any limits on the chosen products, nor does it allow the user to continue after the $vend$ operation. A more complicated model of a vending machine that keeps track of stock levels for two products and gives change is shown in \fig{fig:vendcomplicated}.
+
+\begin{figure}[here]
+\begin{center}
+\includegraphics[width=13cm]{vend-complicated.pdf}
+\caption{A more complicated machine EFSM}
+\label{fig:vendcomplicated}
+\end{center}
+\end{figure}
+
+\subsection{Guard and Update Expressions}
+\label{Expressions}
+
+The EFSM guard, update, and output expressions make use of various operators. Guard expressions use conventional comparison operators ($<, \leq, >, \geq$) and equality symbols ($=, \neq$) and have boolean values.
+
+Update and output expressions use an assignment syntax of the form $o_n := <expression>$, where the expression has some appropriate value. Conventional arithmetic is supported ($+,-,*,/$), and literal values are enclosed in quotes (e.g. $"coke"$). Literals that are numeric are assumed to be converted automatically, so $o_1 := r_1 + "12"$ is valid. 
+
+As well as the conventional comparison and arithmetic operators, this work introduces operators for string comparison and extraction. In many protocols the values that must be stored in the internal data state are not present in isolation, but as parts of larger blocks (network data packets, for example). The inference process described in \sect{Algorithm} is designed to operate without prior knowledge of the structure of the data. 
+
+Consequently, the operators $match(pre,suf)$ and $get(pre,suf)$ are introduced to express the existence of values within strings, and to extract those values. They are designed to identify and extract vales by reference to prefix and suffix strings in the protocol. These can be the empty string, if the required value is consistently at the beginning or end of the string, or is the entirety of the string. 
+
+As an example, consider a more complicated data packet representing the first transition in the vending machine example.
+
+\begin{verbatim}
+coinstate=0;selected=coke;cokeinv=12;pepsiinv=10;
+\end{verbatim}
+
+[definitions over numbers, bools, and strings]
+
+\subsection{Inference algorithm}
+\label{Algorithm}
+
+\subsubsection{Prefix Tree Automaton generation}
+\label{PTA}
+
+[Retain trace number and event position in labels]
+
+\begin{figure}[here]
+\begin{center}
+\includegraphics[width=12cm]{vend1.pdf}
+\caption{The Prefix Tree Automaton (PTA) of the vending machine}
+\label{fig:pta}
+\end{center}
+\end{figure}
+
+\subsubsection{Identifying possible data reuse in traces}
+\label{IntratraceDependencies}
+
+[Trace formal def - inc EFSM events (label + params)]
+
+\begin{figure}[here]
+\begin{center}
+\includegraphics[width=12cm]{intratracedeps.eps}
+\caption{Some traces of the vending machine}
+\label{fig:pta}
+\end{center}
+\end{figure}
+
+[Identification of Intratrace dependencies]
+
+[Formal def of Intratrace Deps]
+
+[Formal def of trace and intradeps? or events with intradeps included?]
+
+\subsubsection{Evidence Driven State Merging}
+\label{EDSM}
+
+[K-tails? Blue Fringe? Negatives?]
+
+\subsubsection{Identifying co-incidence of data re-use}
+\label{IntertraceDependencies}
+
+
+
+[On merge check for matching trace deps]
+[Example with diagrams]
+
+\begin{figure}[here]
+\begin{center}
+\includegraphics[width=7cm]{vend2-withannotations.eps}
+\caption{The FSM after simple merging}
+\label{fig:FSM}
+\end{center}
+\end{figure}
+
+
+[Variable instantiation. Consider newly identical transitions]
+[Example with diagrams]
+
+\subsubsection{Generalisation of transitions}
+\label{Generalisation}
+
+[FIXME Genetic Programming]
 
 
 \section{Conclusions}
