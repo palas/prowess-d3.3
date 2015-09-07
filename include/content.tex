@@ -1044,7 +1044,7 @@ $s_4 \xrightarrow{vend/o_{1} := r_{1}} s_5$
 
 A simple EFSM model of a vending machine is shown in \fig{fig:vendsimple}. This shows a machine which begins with a $select$ operation that stores its input values ($i_1$ - the chosen drink) in data state register $r_1$. Then it allows $coin$ operations and increases the value of $r_2$ by the value of $i_1$ (the value of the inserted coin). A $vend$ operation is prevented by a guard expression until the value of $r_2$ reaches or exceeds 100. At this point a $vend$ operation can be performed which will decrease $r_2$ by 100 and output the selected product (stored in $r_1$).
 
-\begin{figure}[here]
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=7cm]{figures/efsm/vend-real.pdf}
 \caption{A simple vending machine EFSM}
@@ -1054,7 +1054,7 @@ A simple EFSM model of a vending machine is shown in \fig{fig:vendsimple}. This 
 
 This model doesn't define any limits on the chosen products, nor does it allow the user to continue after the $vend$ operation. A more complicated model of a vending machine that keeps track of stock levels for two products and gives change is shown in \fig{fig:vendcomplicated}.
 
-\begin{figure}[here]
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=13cm]{figures/efsm/vend-complicated.pdf}
 \caption{A more complicated machine EFSM}
@@ -1089,7 +1089,7 @@ coinstate=0;selected=coke;cokeinv=12;pepsiinv=10;
 
 [Retain trace number and event position in labels]
 
-\begin{figure}[here]
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=12cm]{figures/efsm/vend1.pdf}
 \caption{The Prefix Tree Automaton (PTA) of the vending machine}
@@ -1102,7 +1102,7 @@ coinstate=0;selected=coke;cokeinv=12;pepsiinv=10;
 
 [Trace formal def - inc EFSM events (label + params)]
 
-\begin{figure}[here]
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=12cm]{figures/efsm/intratracedeps.eps}
 \caption{Some traces of the vending machine}
@@ -1129,7 +1129,7 @@ coinstate=0;selected=coke;cokeinv=12;pepsiinv=10;
 [On merge check for matching trace deps]
 [Example with diagrams]
 
-\begin{figure}[here]
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=7cm]{figures/efsm/vend2-withannotations.eps}
 \caption{The FSM after simple merging}
