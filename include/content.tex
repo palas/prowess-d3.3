@@ -23,33 +23,56 @@ to having one subset of the bugs solved in one of the instances, and
 another subset of them in the other one.
 
 Erlang provides a mechanism for abstracting and parametrising implementations
-at module level: \emph{Erlang behaviours}.
+at module level: \emph{Erlang behaviours}. A behaviour is given by a module in which 
+some function definitions are missing: these functions provide a \emph{callback interface}. A module
+implementing this interface is called an \emph{instance} of the behaviour.
 
-\subsection{\emph{Erlang behaviours}\label{sec:erlang_behaviours}}
+In this work we study a set of mechanisms to automatically assist developers in the creation of Erlang behaviours in 
+an incremental way, as well as showing how to ``unfold'' a behaviour and an instance of it into a single module. We 
+also show how a behaviour can be inferred and created  from two modules with similar implementations. All of the 
+refactorings described here are available as part of the open-source refactoring tool Wrangler, and make use of the 
+Wrangler API and DSL that facilitate user-defined extensions of the tool. 
+
+In many application areas, system variants are prevalent, and so multiple models are developed, which differ in some 
+aspects of behaviour but share overall structure as well as most aspects of behaviour. In such a situation, it is 
+desirable to develop parametric models, and the work reported here supports building parametrised models from existing 
+variants. It is worth emphasising again that this is \emph{parametrisation over functionality}, and not simply over 
+data, and so provides a general parametrisation framework.
+
+
+\subsection{Erlang behaviours\label{sec:erlang_behaviours}}
 
 \emph{Erlang Behaviours} are a standard Erlang mechanism that allows the
-parametrisation of modules. A \emph{behaviour} is composed of:
-\begin{itemize}
-\item A \emph{behaviour definition}, which defines a series of callbacks
+parametrisation of modules. A \emph{behaviour} is composed of two parts: a behaviour definition and one or more behaviour instances.
+
+
+A \textbf{behaviour definition} is an Erlang module that defines a series of callbacks
 that its \emph{behaviour instances} must implement. This can be done
 in one of two ways:
 
 \begin{itemize}
 \item Through \texttt{callback} declarations, which specify the expected
-callbacks and their type signatures. For example:\begin{verbatim}
+callbacks and their type signatures. For example:
+{\small
+\begin{verbatim}
 -callback terminate(Reason :: (normal | shutdown |
                                {shutdown, term()} |
                                term()),
                     State :: term()) -> term().
 \end{verbatim}
+}
+
 \item Through a \texttt{behaviour\_info/1} function that specifies the name
-and arity of the expected callbacks. For example:\begin{verbatim}
+and arity of the expected callbacks. For example:
+{\small
+\begin{verbatim}
 behaviour_info(callbacks) ->
                  [{init, 1}, {handle_call, 3},
                   {handle_cast, 2}, {handle_info, 2},
                   {terminate, 2}, {code_change, 3}];
 behaviour_info(_) -> undefined.
 \end{verbatim}
+}
 \end{itemize}
 
 In this work we have only considered the \texttt{behaviour\_info/1}
@@ -58,14 +81,40 @@ declarations by the abstract syntax tools. These two approaches are
 mutually exclusive, the Erlang compiler will complain if both are
 used at the same time.
 
-\item One or more \emph{behaviour instances} which must implement the callbacks
+Each \textbf{behaviour instance} is an Erlang module that must implement the callbacks
 defined by the \emph{behaviour definition} and contain a \texttt{behaviour}
 declaration that specifies which \emph{behaviour definition} they
-implement. \\
-Example of \texttt{behaviour} declaration:\begin{verbatim}
+implement. 
+
+A behaviour instance will be an Erlang module containing a \texttt{behaviour} declaration of the form:\begin{verbatim}
 -behaviour(gen_server).
 \end{verbatim}
-\end{itemize}
+together with definitions of the callback functions, as well as definitions of any other relevant functions.
+
+\subsection{Wrangler usage}\label{wrangler-usage}
+
+The refactorings for manipulation of Erlang behaviours presented here can be understood, to a large extent, in terms of 
+smaller existing refactorings. Because of that, we have been able to reuse a lot of functionality that was already 
+available in Wrangler. In particular, the refactorings that assist the iterative manipulation of Erlang behaviours have 
+been implemented by using Wrangler's DSL for composite refactorings.
+
+Several of the primitive refactorings, used by the new composite refactorings, already existed. Some of the 
+new refactorings were created through the use of the API for user-defined refactorings, and even some of the 
+refactorings that were created as internal extensions to Wrangler were based on existing ones, (e.g: the new copy 
+module refactoring was based on the existing rename module refactoring). For this reason, the work described in this 
+deliverable validates the effectiveness of Wrangler's DSL for extending the applicability of Wrangler.
+
+The refactoring for automatic behaviour extraction was implemented in its entirety as an internal extension to 
+Wrangler, but both the internal infrastructure and the refactoring API were used extensively. This support allowed the 
+new implementations to inherit properties like code layout and comment preservation.
+
+Finally, low-level mechanisms provided by Wrangler, (like the categorisation of AST nodes, or the module information 
+extraction), have already been extensively tested in production settings. Being able to reuse these mechanisms grants 
+our implementation with an increased level of safety that would be costly to achieve with an implementation from 
+scratch.
+
+The branch of Wrangler containing these extensions and the code for case studies is available at 
+\url{https://github.com/RefactoringTools/wrangler}, (branch draft-release-1.2).
 
 \subsection{Extended Finite State Machine Inference}
 
@@ -74,8 +123,57 @@ Example of \texttt{behaviour} declaration:\begin{verbatim}
 
 \section{Related Work}
 \label{related_work}
+\label{sec:related_work}
 
-Diverse approaches and studies have been aimed in the past...
+\paragraph{Abstraction introduction}
+
+Existing refactoring tools for object-oriented languages (including IntelliJ IDEA, Eclipse and NetBeans) provide 
+a facility to extract an interface from OO code. The closest to the work we report here is the IntelliJ IDEA 
+implementation, 
+in which the third option \emph{``rename[s] the original class, [so that] it implements the newly created 
+interface.''}~\cite{intellij-extract}. Our work differs from this in being tuned to work particularly with Erlang code, 
+and also in supporting the incremental development of the behaviour, one function at a time. It also supports the 
+automated identification of possibilities for interface introduction, which is also not supported in the implementations 
+for other languages.
+
+\paragraph{Behaviour identification}
+
+Our approach has a lot in common with clone detection. The main difference
+is that in this approach we assume that we know the root of the replication
+and we are actually finding the different parts, and clone detection
+assumes that most of the code is different and tries to find the commonalities.
+In our case we assume that we start with two modules which are similar
+and we try to find a common structure between both and create an Erlang
+behaviour. For this reason the problem is not so much locating the
+common parts but matching them appropriately. Thus, in our case it
+makes more sense to explore structural commonalities in depth, whereas
+in clone detection it is often more effective to focus on the sequential
+behaviour.
+
+
+The previous work that we have found which is most similar to the
+one presented here is \cite{chawathe1996change}, which strongly
+inspired this work. Tree comparison has been researched extensively
+\cite{bille2005survey}, a big part targeted at XML \cite{peters2005change}.
+Of course, the nature of XML is quite different to the one of Erlang,
+but they both share the use of nested structures and semi-structured data.
+
+\paragraph{Clone detection}
+
+There is an extensive literature on software clones: \cite{Roy07Survey} surveys work in the area up to 2007, and there 
+is also a regular \emph{International Workshop on Software Clones}~\cite{IWSC10,IWSC11}. While some code clones might 
+have a sound reason for their existence~\cite{KasperGodfrey06,Cordy2003}, many clones are considered to be detrimental 
+to the quality of software, because code duplication makes it more likely that  bugs will be propagated, as well as 
+increasing the size of the source
+code and the executable, the compile time, and most importantly the overall cost of maintenance~\cite{Monden02}.
+
+The existing body of work on software clones places an emphasis on clone identification, analysis and classification -- 
+both theoretical and practical~\cite{TowardsTaxonomy} -- as well as on the evolution and tracking of clones during the 
+lifetime of a project. This literature encompasses theoretical work on different mechanisms of clone identification, as 
+well as case studies that  show the presence of code clones in most projects, typically accounting for at least ten 
+percent of the existing code base.
+
+
 
 \section{Assisted behaviour creation and unfolding with Wrangler}
 
@@ -338,7 +436,7 @@ to behaviour instance}, and still obtain the same result.
 
 \begin{figure}
 \lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:initial_code},
-language=erlang]{figures/assisted_beh/code/step1/bar.erl}
+language=Erlang]{figures/assisted_beh/code/step1/bar.erl}
 
 \caption{Initial code\label{fig:initial_code}}
 \end{figure}
@@ -353,11 +451,11 @@ created that contains the function \texttt{foo/0} and a \texttt{behaviour}
 declaration that points to the module \texttt{bar}, (Figure~\ref{fig:after_ref}).
 
 \begin{figure}
-\begin{minipage}[t]{0.65\columnwidth}%
+\begin{minipage}[t]{0.65\textwidth}%
 \lstinputlisting[breaklines=true,captionpos=b,frame=tbl,label={lst:bar_after_ref},language=erlang]{
 figures/assisted_beh/code/step2/bar.erl}%
 \end{minipage}%
-\begin{minipage}[t]{0.35\columnwidth}%
+\begin{minipage}[t]{0.35\textwidth}%
 \lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:new_after_ref},language=erlang,showlines=true]{
 figures/assisted_beh/code/step2/new.erl}%
 \end{minipage}
@@ -388,11 +486,11 @@ This procedure leaves us with the modules \texttt{bar} and \texttt{new}
 shown in Figure~\ref{fig:manual_adj}.
 
 \begin{figure}
-\begin{minipage}[t]{0.6\columnwidth}%
+\begin{minipage}[t]{0.6\textwidth}%
 \lstinputlisting[breaklines=true,captionpos=b,frame=tbl,label={lst:bar_manual_adj},language=erlang]{
 figures/assisted_beh/code/step5/bar.erl}%
 \end{minipage}%
-\begin{minipage}[t]{0.4\columnwidth}%
+\begin{minipage}[t]{0.4\textwidth}%
 \lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:new_manual_adj},language=erlang,showlines=true]{
 figures/assisted_beh/code/step5/new.erl}%
 \end{minipage}
@@ -475,10 +573,11 @@ language=erlang]{figures/assisted_beh/code/step7/bar_new.erl}
 \caption{Result of unfolding after removing spurious parameter\label{fig:final_result}}
 \end{figure}
 
-\section{Automatic behaviour creation with Wrangler}
+\section{Automatic behaviour identification with Wrangler}
+\label{sec:identification}
 
-When developing software, we sometimes realise that we should add
-abstraction after we have already implemented two pieces of similar
+When developing software, we might well realise that we should add
+abstraction once we have implemented two pieces of similar
 code. At this point, we must make an additional effort to find the
 commonalities and unify them. This job is tedious and error prone,
 and it does not provide any additional functionality, which makes
@@ -489,49 +588,35 @@ the evolution of the code unified.
 For this reason, in this section we study a mechanism that automatically
 creates an Erlang behaviour by merging two modules selected by the
 user, which are assumed to be structurally similar, and possibly the
-result of copying and modifying one of them.
+result of copying and modifying one of them to produce the other.
 
 This mechanism has been implemented and distributed as a refactoring
 included in Wrangler refactoring tool for Erlang. Even though there is no
-guarantee about this, the refactoring aims to not alter the behaviour
+guarantee about this, since there may be bugs in the implementation and
+the code could depend in complicated or conflicting macros which may
+not be preserved correctly, the refactoring aims not to alter the behaviour
 of the two modules targeted from the point of view of their external
 interface, and it should only affect the organisation of the code
 between the original modules, (which will be transformed by the refactoring
 into \emph{behaviour instances}), and the newly created \emph{behaviour
 definition}.
 
-
-\subsection{Related work}
-
-Our approach has a lot in common with clone detection. The main difference
-is that in this approach we assume that we know the root of the replication
-and we are actually finding the different parts, and clone detection
-assumes that most of the code is different and tries to find the commonalities.
-In our case we assume that we start with two modules which are similar
-and we try to find a common structure between both and create an Erlang
-behaviour. For this reason the problem is not so much locating the
-common parts but matching them appropriately. Thus, in our case it
-makes more sense to explore structural commonalities in depth, whereas
-in clone detection it is often more effective to focus on the sequential
-behaviour.
-
-The previous work that we have found which is most similar to the
-one presented here is \cite{chawathe1996change}, which strongly
-inspired this work. Tree comparison has been researched extensively
-\cite{bille2005survey}, a big part targeted at XML \cite{peters2005change}.
-Of course, the nature of XML is quite different to the one of Erlang,
-but they both share the use of nested structures and semi-structured data.
-
-
 \subsection{Overview}
 
-The algorithm consists of three parts, tree matching, cluster construction,
-and cluster linking. The process starts with two modules which are
-assumed to be similar. First we find commonalities between their ASTs,
+In general, the refactoring will only affect the organisation
+of the code between the original modules, (which will be transformed by
+the refactoring into \emph{behaviour instances}), and the newly created
+\emph{behaviour definition}.
+
+%\subsection{Overview}
+
+The algorithm consists of three parts: tree matching (Section~\ref{sub:tree-matching}), cluster construction 
+(Section~\ref{sub:cluster-cons}), and cluster linking (Section~\ref{sub:cluster-linking}). The process starts with two 
+modules which are assumed to be similar. First we find commonalities between their ASTs,
 group the contiguous commonalities, move the commonalities to a separate
 module, and link the pieces together with function calls in order
-to preserve the original behaviour. This way we are left we three
-modules, the remainings of the original ones and a new module with
+to preserve the original behaviour. This way we are left with three
+modules: the remains of the original ones and a new module with
 the common parts.
 
 
@@ -540,7 +625,7 @@ the common parts.
 In the first stage we apply a tree matching algorithm to find correspondences
 between the ASTs, of both modules. In the current implementation we
 have used the top-down tree matching algorithm described in \cite{al2005diffx},
-because it is both easy to implement and effective. But we have encapsulated
+because it is both easy to implement and effective. We have encapsulated
 the tree matching algorithm in a way that would allow it to be replaced
 easily by other algorithms in the future.
 
@@ -556,13 +641,13 @@ One specific consideration for applying tree matching to our problem is
 deciding how to compare individual nodes of the syntax tree. We use
 a simple dual approach:
 \begin{itemize}
-\item For leave nodes, which usually contain the semantic information, we
+\item For \emph{leaf nodes}, which usually contain the semantic information, we
 compare the literal representation of the nodes. This way, two variables
-or two atoms are considered equal if and only if their name matches.
+or two atoms are considered equal if and only if their names match.
 It is important to remove any comments from the representation before
-comparing, since this would produce false negatives.
-\item For the rest of nodes, which contain structural information, we compare
-the type of node and the number of children it has. This way, two
+comparing, since these would produce false negatives.
+\item For \emph{the other nodes}, which contain structural information, we compare
+list constructors of the same length will be considered equal independently
 list constructors of the same length will be considered equal independently
 of their elements, but a tuple and a list of the same length, or two
 lists of different lengths, will not.
@@ -574,18 +659,18 @@ where nodes with the same name are considered equal.
 
 \begin{figure}
 \centering
-\includegraphics[width=0.66\textwidth]{figures/automatic_beh_inf/diagrams/dia2}
+\includegraphics[width=0.65\textwidth]{figures/automatic_beh_inf/diagrams/dia2}
 \par
 
-\caption{Graphical representaton of tree mapping\label{fig:tree-mapping-example}}
+\caption{Graphical representation of tree mapping\label{fig:tree-mapping-example}}
 \end{figure}
 
 
 
-\subsection{Cluster construction}
+\subsection{Cluster construction\label{sub:cluster-cons}}
 
 Cluster construction comprises the grouping of nodes in subtrees,
-and the readjustment of frontiers. Readjustment of frontiers is achieved
+and the readjustment of frontier links. Readjustment of frontier links is achieved
 through the resizing of the clusters.
 
 
@@ -593,31 +678,32 @@ through the resizing of the clusters.
 
 At this point we have a mapping between the common nodes of both the
 ASTs of the input modules. We now traverse the AST of one of the input
-modules and, we group in subtrees the pairs of contiguous nodes that
+modules and we group in subtrees the pairs of contiguous nodes that
 have a mapping. That is, we find those groups of mapped nodes that
 are contiguous in both trees and the mapping.
 
-A pair of nodes $a$ and $b$ in a tree, (parent and child respectively),
-are contiguous if and only if: the parent of the projection of $b$
+We say that a pair of nodes $a$ and $b$ in a tree, (parent and child respectively),
+are \emph{contiguous} if and only if: the parent of the projection of $b$
 is identical to the projection of $a$, and $b$ is child of $a$
-in the same position, (same number of child), than the projection
-of $b$ is child of the projection of $a$.
+in the same position (numbering child nodes in order) as the projection
+of $b$ as a child of the projection of $a$.
 
-Formally, we have two sets of nodes $N$ and $M$, (one per AST of
-input module, where $a,b\in N$), a function $f$ that maps pairs
-of common nodes from $N$ to $M$ ($f:N\rightarrow M$), (as returned
-by the tree matching algorithm in Section~\ref{sub:tree-matching}),
-and functions $p$ and $q$, that map a node to a tuple with its parent
-(inside the same AST) and the ordinal position of the node in the
-list of children of its parent, ($p:N\rightarrow(N,\mathbb{N})$ and
-$q:M\rightarrow(M,\mathbb{N})$). Two nodes $a$ and $b$ are contiguous
-if and only if: $\exists(i\in\text{\ensuremath{\mathbb{N}})}:(a,i)=p(b)\land(f(a),i)=q(f(b))$,
-or $\exists(i\in\text{\ensuremath{\mathbb{N}})}:(b,i)=p(b)\land(f(a),i)=q(f(b))$,
-or if there exists a node $c$ that is contiguous to both $a$ and
-$b$.
+% In more formal terms, suppose that we are given two sets of nodes $N$ and $M$, (one per AST of
+% input module, where $a,b\in N$), together with a function $f$ that maps pairs
+% of common nodes from $N$ to $M$ ($f:N\rightarrow M$), (as returned
+% by the tree matching algorithm in Section~\ref{sub:tree-matching}),
+% and two functions $p$ and $q$, which map nodes in $N$ (and $M$ respecitvely) to their parents (together with their 
+position among the children of that parent),
+%  ($p:N\rightarrow(N,\mathbb{N})$ and
+% $q:M\rightarrow(M,\mathbb{N})$). Then, two nodes $a$ and $b$ are said to be \emph{contiguous}
+% if and only if: $\exists(i\in\text{\ensuremath{\mathbb{N}})}:(a,i)=p(b)\land(f(a),i)=q(f(b))$,
+% or $\exists(i\in\text{\ensuremath{\mathbb{N}})}:(b,i)=p(b)\land(f(a),i)=q(f(b))$,
+% or if there exists a node $c$ that is contiguous to both $a$ and
+% $b$.
 
 In Figure~\ref{fig:tree-clustering-example} we show how the trees
-in Figure~\ref{fig:tree-mapping-example} would be clustered.
+in Figure~\ref{fig:tree-mapping-example} would be clustered, where frontier links
+are represented as dashed arrows.
 
 \begin{figure}
 \centering
@@ -629,16 +715,16 @@ in Figure~\ref{fig:tree-mapping-example} would be clustered.
 
 
 
-\subsubsection{Readjusting the frontiers}
+\subsubsection{Readjusting the frontier links}
 
 Once we have grouped all mappings in clusters, (i.e: contiguous subtrees),
-we must check that the frontiers, (i.e: the pairs of parent-child
+we must check that the frontier links, (i.e: the pairs of parent-child
 nodes with nodes in different clusters), are valid places for function
 extraction. There are several reasons why this may not be the case,
 the most common ones are:
 \begin{itemize}
-\item The lower node of the frontier must be an expression. In particular,
-it must be syntactically correct to use the subtree of the frontier
+\item The lower node of the frontier link must be an expression. In particular,
+it must be syntactically correct to use the subtree of the frontier link
 as the body of a function.
 \item It must be possible to replace the child node with a function call.
 For example, a function call cannot be introduced in the header of
@@ -647,15 +733,15 @@ a function instead of a parameter.
 of it since creating a function will also create a new scope. This
 can be allowed at this point and fixed afterwards in some cases.
 \end{itemize}
-The conditions for readjusting frontiers are also useful for fine
+The conditions for readjusting frontier links are also useful for fine
 tuning the algorithm. We can allow the creation of invalid functions
-as long as we have a postprocessing mechanism that fixes them, (see
-Section~\ref{sub:function-migration-artifact}), and we can disallow
+as long as we have a post-processing mechanism that fixes them, (see
+Section~\ref{sub:function-migration-artefact}), and we can disallow
 the creation of functions that would be correct, if we want to preserve
-some artifacts or for readability (see
+some artefacts or for readability (see
 Section~\ref{sub:artificial-block-expressions}).
 
-We can adjust the frontiers by removing pairs of nodes from the common
+We can adjust the frontier links by removing pairs of nodes from the common
 clusters, and by removing their mappings. This produces a small replication
 of code, but in the worst case scenario, we will fallback to having
 no common clusters and that would leave the input modules as they
@@ -663,38 +749,35 @@ were originally.
 
 We take as basic principle that, if necessary, we can have code common
 to both instances replicated in both the behaviour instances, but
-we cannot have code exclusive to one of the behaviour instances in
+we cannot have code unique to one of the behaviour instances in
 the behaviour definition. We could potentially do so by adding conditional
 flow control expressions, but that would prevent future generalisation,
 (the creation of new instances for the generated behaviour definition).
 
 
-\subsubsection{Common clusters and exclusive clusters}
+\subsubsection{Common clusters and unmatched clusters}
 
-After we have computed the nodes that will form the clusters, we group
-the nodes that are not mapped (and, as such, do not belong to any
-cluster), into exclusive clusters. We will still only group contiguous
-nodes in each cluster, but this time we will consider two nodes are
-contiguous if and only if:
-\begin{itemize}
-\item One is ancestor of the other for any of the ASTs of the input modules
-\item None of the nodes that link them together, (in the AST hierarchy),
-has a mapping with a noose in the other AST, (i.e: it does not belong
-to a common cluster).
-\end{itemize}
+After we have computed the nodes that will form the clusters, we remove
+them and their links from the ASTs, and we cluster for each ASTs
+the groups of nodes that are still linked together into new ``unmatched clusters''.
+
 We will now have two kinds of cluster:
 \begin{itemize}
 \item The common clusters, that have representation in both ASTs. Each of
 them represents a function in the output behaviour definition (or
 common functions).
-\item The exclusive clusters, that in turn belong to one of the two ASTs.
+\item The unmatched clusters, that in turn belong to one of the two ASTs.
 Each of them represents a function in one of the behaviour instances
 (or callbacks).
 \end{itemize}
+
 In Figure~\ref{fig:cluster-linking-example}, we show how the example
 in Figure~\ref{fig:tree-clustering-example} would be reorganised
 and linked, where the dashed node I in Version 2 is the rendering
 of an indirection cluster.
+
+Indirection clusters are unmatched clusters which have, as only body,
+a function call that redirects the execution flow to the correct child cluster.
 
 \begin{figure}
 \centering
@@ -703,32 +786,35 @@ of an indirection cluster.
 
 \caption{Graphical representation of linking\label{fig:cluster-linking-example}}
 
-
 \end{figure}
 
-
-
-\subsection{Linking}
+\subsection{Linking\label{sub:cluster-linking}}
 
 The last step is linking the clusters through function calls, to preserve
 the behaviour of the original modules after the relocation of the
 functions.
 
-For linking, we first visit every lower frontier of common clusters,
+For linking, we first visit every lower frontier link of common clusters,
 and try to assign the same name to both alternative child clusters.
-For each lower frontier in the common clusters we necessarily have
+For each lower frontier link in the common clusters we necessarily have
 two alternative child clusters, since nodes in the common clusters
 are the result of merging two nodes. We also know that these two clusters
 are different, since otherwise they would have merged to the parent
-cluster. We can find which clusters are these by looking up the original
+cluster. We can find which clusters these are by looking up the original
 nodes in both of the original ASTs.
 
-The alternative child clusters for a lower frontier do not need to
-be exclusive. It is possible that one or both of the child clusters
+The alternative child clusters for a lower frontier link do not need to
+be unmatched. It is possible that one or both of the child clusters
 are also common. This is because the end of the cluster may be due
-to a discontinuity rather than to exclusive behaviours. If that is
-the case, it is also possible that we have already set a name for
-those clusters.
+to a discontinuity in the mapping, rather than to unmatched code,
+
+For example, a node $a$ and its parent $b$ may both have mappings and still
+belong to different clusters if the image of $b$ is not the parent
+of the image of $a$, or if the image of $a$ is in a different position
+in the child list.
+
+If that is the case, it is also possible that we have already set a
+name for those clusters.
 
 In order to create a uniform interface, we need to keep the symmetry
 in both behaviour instances. This means having the same number of
@@ -737,17 +823,16 @@ for each pair of equivalent callbacks.
 
 Because of this, if we have already set a name for the cluster and,
 thus, we cannot ensure that both child clusters have the same name,
-we will create exclusive ``indirection clusters'' in any or both
-of the sides that cannot be renamed. Indirection clusters have, as
-only body, a call that redirects the execution flow to the correct
-child cluster. Of course, we want to minimise the use of indirection
-clusters, since they add complexity to the code.
+we will create ``indirection clusters'' in either or both 
+sides that cannot be renamed. Of course, we want
+to minimise the use of indirection clusters, since they add complexity
+to the code.
 
 We can keep the number of parameters for equivalent callbacks equal,
-by mixing the parameters of both alternatives at any point. If there
-are common parameters, we add them only once, but we will add exclusive
-parameters to both alternatives of each cluster. In the exclusive
-side where the exclusive parameters of the opposite side are not bound,
+by merging the parameter sequences of both alternatives at any point. If there
+are common parameters, we add them only once, but we will add unmatched
+parameters to both alternatives of each cluster. In the unmatched
+side where the unmatched parameters of the opposite side are not bound,
 we will use dummy values for those parameters. These dummy values
 will not cause a difference in the behaviour because they will not
 be used, and they are easy to generate thanks to the flexible typing
@@ -755,10 +840,10 @@ of Erlang.
 
 \subsection{Extra considerations}
 
-The automatic behaviour extraction refactoring implies several logical
-subrefactorings, and, thus, some considerations applied to these subrefactorings
+The automatic behaviour extraction refactoring subsumes several logical
+sub-refactorings, and, thus, some considerations applied to these sub-refactorings
 are also applicable to automatic behaviour extraction. The main logical
-subrefactorings implied by automatic behaviour extraction are: function
+sub-refactorings implied by automatic behaviour extraction are: function
 extraction, and function module migration, (i.e: moving one function
 from one module to another).
 
@@ -772,79 +857,93 @@ we must ensure that the created functions are valid, and that it is
 syntactically and grammatically correct to insert a function call
 in the position where the extracted code originally was.
 
-Additionally, it is desirable that when several consecutive sentences
+In addition, it is desirable that when several consecutive sentences
 are extracted, they are combined into the same created function. This
 is not trivial if, as in our implementation, the clusters created
 have tree topology. Splitting a tree horizontally will create several
 subtrees, which would in turn translate into separate functions. But
 it is much clearer to have them grouped in the body of the same function,
-rather than in several different functions which are called consecutively,
-(e. g: without the block artifact, the input example modules in Figure~\ref{fig:block-expression-input},
+rather than in several different functions which are called consecutively.
+For instance, without the block artefact, the input example modules in Figure~\ref{fig:block-expression-input},
 would be merged as shown in Figure~\ref{fig:block-expression-before},
-the block artifact allows the more concise representation shown in
-Figure~\ref{fig:block-expression-after}).
+the block artefact allows the more concise representation shown in
+Figure~\ref{fig:block-expression-after}.
 
 \begin{figure}
-\begin{minipage}[t]{0.5\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tbl,language=Erlang]{figures/automatic_beh_inf/1-block_artifact/1-in/mod1.erl}%
+\begin{minipage}[t]{0.5\textwidth}%
+\lstinputlisting[breaklines=true,frame=tbl,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/1-block_artefact/1-in/mod1.erl}
 \end{minipage}%
-\begin{minipage}[t]{0.5\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang]{figures/automatic_beh_inf/1-block_artifact/1-in/mod2.erl}%
+\begin{minipage}[t]{0.5\textwidth}%
+\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/1-block_artefact/1-in/mod2.erl}
 \end{minipage}
 
-\caption{Input example modules to illustrate block expression artifact\label{fig:block-expression-input}}
-
+\caption{Input example modules to illustrate block expression artefact\label{fig:block-expression-input}}
 
 \end{figure}
 
-
 \begin{figure}
-\begin{minipage}[t]{0.5\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tbl,language=Erlang]{
-figures/automatic_beh_inf/1-block_artifact/2-out-before/mod1.erl}%
+\begin{minipage}[t]{0.5\textwidth}%
+\lstinputlisting[breaklines=true,frame=tbl,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/1-block_artefact/2-out-before/mod1.erl}%
 \end{minipage}%
-\begin{minipage}[t]{0.5\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang]{
-figures/automatic_beh_inf/1-block_artifact/2-out-before/mod2.erl}%
+\begin{minipage}[t]{0.5\textwidth}%
+\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/1-block_artefact/2-out-before/mod2.erl}%
 \end{minipage}
 
-\begin{minipage}[t]{1\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang]{
-figures/automatic_beh_inf/1-block_artifact/2-out-before/out.erl}%
+\begin{minipage}[t]{1\textwidth}%
+\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/1-block_artefact/2-out-before/out.erl}%
 \end{minipage}
 
 \caption{Output of modules in Figure~\ref{fig:block-expression-input} without
-block expression artifact\label{fig:block-expression-before}}
+block expression artefact\label{fig:block-expression-before}}
 \end{figure}
 
 
 \begin{figure}
-\begin{minipage}[t]{0.5\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tbl,language=Erlang]{
-figures/automatic_beh_inf/1-block_artifact/3-out-after/mod1.erl}%
+\begin{minipage}[t]{0.5\textwidth}%
+\lstinputlisting[breaklines=true,frame=tbl,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/1-block_artefact/3-out-after/mod1.erl}%
 \end{minipage}%
-\begin{minipage}[t]{0.5\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang]{
-figures/automatic_beh_inf/1-block_artifact/3-out-after/mod2.erl}%
+\begin{minipage}[t]{0.5\textwidth}%
+\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/1-block_artefact/3-out-after/mod2.erl}%
 \end{minipage}
 
-\begin{minipage}[t]{1\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang]{
-figures/automatic_beh_inf/1-block_artifact/3-out-after/out.erl}%
+\begin{minipage}[t]{\textwidth}%
+\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/1-block_artefact/3-out-after/out.erl}%
 \end{minipage}
 
 \caption{Output of modules in Figure~\ref{fig:block-expression-input} with
-block expression artifact\label{fig:block-expression-after}}
+block expression artefact\label{fig:block-expression-after}}
 \end{figure}
+
+\begin{figure*}
+\begin{minipage}[t]{0.5\linewidth}%
+\lstinputlisting[breaklines=true,frame=tbl,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/2-interference/1-in/mod1.erl}%
+\end{minipage}%
+\begin{minipage}[t]{0.5\linewidth}%
+\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/2-interference/1-in/mod2.erl}%
+\end{minipage}
+\vspace*{-2.5mm}
+\caption{Input example modules to illustrate interference between artefacts\label{fig:interference-input}}
+\end{figure*}
+
 
 
 In our implementation we solve this problem by doing two passes to
 the algorithm, after the first one, we locate the consecutive child
-clusters and we introduce an artificial block expression around them,
-(in both source modules). In the second pass, the blocks will be extracted
-as a single function, and we can remove them easily at postprocessing.
+clusters and we introduce an artificial block expression around them
+in both source modules. In the second pass, the blocks will be extracted
+as a single function, and we can remove them easily at post-processing.
 We also ensure that artificial blocks are not detached from their
-child sentences by adding an exception for them in the frontier readjustment
+child sentences by adding an exception for them in the frontier link readjustment
 procedure.
 
 
@@ -857,12 +956,24 @@ that defines variables used afterwards, we will move those variables
 to a new scope, they will no longer accessible by the sibling trees,
 and we will cause a compilation error.
 
+For example, in the following function:
+
+\begin{verbatim}
+suma(A, B, C) ->
+    Total = A + B,
+    C = Total.
+\end{verbatim}
+
+We cannot directly move the first sentence to a different function
+because the second sentence would not be able to access the variable
+\texttt{Total}.
+
 This problem can be prevented by ensuring, when adjusting the cluster
-frontiers, that there are no variables exported to the parent cluster.
-But when combined with the artificial block expression artifact, this
+frontier links, that there are no variables exported to the parent cluster.
+But when combined with the artificial block expression artefact, this
 would be interfering, by preventing the extraction of bigger blocks
 which could be fixed to preserve the semantics just by adding some
-small artifacts, (see Section~\ref{sub:interference}).
+small artefacts, (see Section~\ref{sub:interference}).
 
 
 \subsubsection{Exported variables in artificial block expressions\label{sub:interference}}
@@ -874,54 +985,46 @@ outside of the function call.
 But in some cases the result of the function may already be used from
 outside, and modifying it would modify the behaviour of the refactored
 program. To avoid this, whenever variables are exported, we will only
-create artificial block expressions that do not contain the last sequence
+create artificial block expressions that do not contain the last expression
 of a clause. We do not have to worry about modifying the value of
-intermediate sentences in clauses, because we know that this values
-were discarded in the original code, (e.g: in the code of Figure~,
-we cannot extract a common function for the whole clause of the case
+intermediate sentences in clauses, because we know that these values
+were discarded in the original code, (e.g: in the code of Figure~\ref{fig:interference-input},
+we cannot extract a common function for the whole clause of the \texttt{case}
 expression because it both exports and returns values, but we can
-create one function for the last sentence and one for the rest as
-shown in Figure~). This will not produce an ideal solution in every
-case, and it is only implemented for when the frontier is in a clause,
+create one function for the last expression and one for the rest as
+shown in Figure~\ref{fig:interference-output}). This does not produce an ideal solution in every
+case, and it is only implemented when the frontier link is in a clause,
 but without it the previous approaches would modify behaviour in cases
 where values are returned and exported simultaneously from a clause.
 
 \begin{figure}
-\begin{minipage}[t]{0.5\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tbl,language=Erlang]{figures/automatic_beh_inf/2-interference/1-in/mod1.erl}%
-\end{minipage}%
-\begin{minipage}[t]{0.5\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang]{figures/automatic_beh_inf/2-interference/1-in/mod2.erl}%
+\begin{minipage}[t]{1\textwidth}%
+\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/2-interference/2-out/mod1.erl}%
 \end{minipage}
 
-\caption{Input example modules to illustrate interference between artifacts\label{fig:interference-input}}
-\end{figure}
-
-
-\begin{figure}
-\begin{minipage}[t]{1\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang]{figures/automatic_beh_inf/2-interference/2-out/mod1.erl}%
+\begin{minipage}[t]{1\textwidth}%
+\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/2-interference/2-out/mod2.erl}%
 \end{minipage}
 
-\begin{minipage}[t]{1\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang]{figures/automatic_beh_inf/2-interference/2-out/mod2.erl}%
+\begin{minipage}[t]{1\textwidth}%
+\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
+figures/automatic_beh_inf/2-interference/2-out/out.erl}%
 \end{minipage}
-
-\begin{minipage}[t]{1\columnwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang]{figures/automatic_beh_inf/2-interference/2-out/out.erl}%
-\end{minipage}
-
-\caption{Output of modules in Figure~\ref{fig:interference-input}\label{fig:interference-output}}
+\vspace*{-2.5mm}
+\caption{Output of modules generated from those in Figure~\ref{fig:interference-input}\label{fig:interference-output}}
 \end{figure}
 
 
 In the second pass we will ensure that there are no exported variables,
 (apart from those in artificial block expressions), to avoid breaking
-other unusual kind of frontiers where we cannot automatically fix
-the exportation of variables, (e.g: match expressions in the elements
-of a list). In those cases we will still keep the code consistency
-in exchange for some replication.
-
+other unusual kind of frontier links where we cannot automatically fix
+the export of variables, (e.g: when the frontier link is between
+the elements of a list and the list, and the element binds variables that
+are used outside of the list). In those cases we will still keep the code 
+consistency in exchange for some replication by moving the frontier so that
+it does not interfere with the variable scope.
 
 \subsubsection{Module migration and dependencies}
 
@@ -946,13 +1049,13 @@ previous existing functions. Nevertheless, something similar can happen
 for function whose name is not generated automatically (see Section~\ref{sub:function-arity-collision}).
 
 
-\subsubsection{Function migration artifact\label{sub:function-migration-artifact}}
-
+\subsubsection{Function migration artefact\label{sub:function-migration-artefact}}
+The headers of functions doin Erlang, as in many languages, are hard to
 The headers of functions in Erlang, as in many languages, are hard to
 divide through function extraction. Not being able to divide them
 means that if two functions are very similar but they have slightly
 different patterns, we are forced to keep the whole header of the
-function in the exclusive modules and abstract only the body of each
+function in the unmatched modules and abstract only the body of each
 of the clauses.
 
 Nevertheless, if they are completely identical we can still generalise
@@ -961,12 +1064,12 @@ function calls on the root of a module, we can insert a very simplified
 version of the interface of the function, move the whole function to the
 common module, and insert a simple indirection.
 
-We do this by accepting as a valid frontier the division between the
-header of a function and the root of the module, and by artificially
+We do this by accepting as a valid frontier link the division between the
+header node of a function and the root nodes of the module, and by artificially
 detaching, (i.e: removing from the mapping and common cluster), the
-root of the module.
+root node of the module.
 
-During postprocessing, we just have to generate the simplified function
+During post-processing, we just have to generate the simplified function
 header around the function call that is left in the place where the
 original function was.
 
@@ -974,9 +1077,10 @@ original function was.
 \subsubsection{Function arity collision\label{sub:function-arity-collision}}
 
 Functions created in the common module may, at some point, need to
-call the exclusive modules back. The right exclusive module to call
-is the one that called the current function in the first place. For
-Erlang to know which module to call we parametrise the destination
+call the unmatched modules back. The right unmatched module to call
+is the one that called the current function in the first place.
+
+For Erlang to know which module to call we parametrise the destination
 module of the function calls in the common module with a variable,
 passed as a parameter by the calling module. This variable will contain
 the name of the module as an atom at any particular time.
@@ -984,13 +1088,186 @@ the name of the module as an atom at any particular time.
 The solution is simple, but adding a parameter to common functions
 will still modify its arity. This is not a problem when the names
 of the functions are generated and each function has a different name.
-But if the function has been moved from the exclusive modules and
-has a name assigned by the user, it may potentially clash with a different
-function which has the same name but different arity.
+But, because we only add the module parameter to those functions that
+need it, if the function has been moved from the unmatched 
+modules and has a name assigned by the user, it may potentially clash
+with a different function which has the same name but different arity.
+
+For example, we may have two functions with the same name, one with
+three parameters, and other with four. If only the first function
+requires us to add the module parameter, then we will end up with two
+functions that have the same name and three parameters, which would
+produce an error in compilation time.
 
 It is necessary to have this in consideration, and rename one of the
 clashing functions as soon as this happens, in order to avoid altering
 the behaviour of the original code.
+
+\subsection{Case study}
+\label{sec:case-study}
+
+We have successfully tried both techniques  (i.e. behaviour extraction and automated behaviour identification) in two QuickCheck models with two variants each:
+
+\begin{enumerate}
+ \item models for testing ets and dets term storage libraries, which are part of the Erlang standard distibution;
+ \item models for testing the frequency server (extracted from \cite{CesariniThompson})
+\end{enumerate}
+
+\subsubsection{Functionality}
+
+Both techniques worked except for a small issue when applying the manual technique to a small piece of code that 
+depended on a macro inside a conditional macro block. 
+
+We now evaluate the results in more detail, examining some of the trade-offs and 
+possible alternatives (and future improvements) in applying these techniques in practice.
+
+\subsubsection{Parametrising the frequency server model}
+
+For the frequency server model the automatic approach worked just as expected 
+since the difference was small and located in one single place. Parametrisation 
+is done automatically in exchange for some automatically generated interface 
+boilerplate.
+
+The manual approach for frequency server allows to keep the 
+interface of both modules in the common side, but parametrisation of the 
+unmatched part must be done manually, for example through a macro or by 
+modifying the model manually.
+
+\paragraph{Automatic approach.}
+
+Parametrisation of the frequency server model was simple, the automatic 
+approach already generated a good result by itself and we could see that the 
+only unmatched method was the body of a precondition that in one was:
+
+\begin{verbatim}
+callback_1(Alloc, Freq) -> not lists:member(Freq,Alloc).
+\end{verbatim}
+
+and in the other:
+
+\begin{verbatim}
+callback_1(_Alloc, _Freq) -> false.
+\end{verbatim}
+
+For the automatic approach all the functions that existed in the input modules, 
+which in this case had common body, were replaced in both instances with simple 
+function calls that simply redirect the original interface to the common part, 
+in order to keep the original behaviour unchanged.
+
+This is good because we would not have to modify any module that uses the code 
+generalised, it all works the same as it did. In exchange we have a small 
+amount of boilerplate that clutters the code.
+
+\paragraph{Manual approach.}
+
+For the manual approach we just need to select the body of the function that 
+changes. We already knew which part it is thanks to the automatic approach, 
+but we could have found out with a tool like \texttt{vimdiff}, for example.
+
+We select the piece of code that changes in one of the input instances, and 
+apply the refactoring \texttt{Expression to behaviour instance} pointing to a 
+new unexisting module. The new module will contain the unmatched code for that 
+version.
+
+We can now copy the instance we generated and modify the callbacks to contain 
+the code corresponding to the other version. In this case, if we selected the 
+most complex version, we just have to replace the code of the callback with the 
+atom \texttt{false}.
+
+As described in Section~\ref{sub:alternative-adjustments-for-generalisation} we 
+must also generalise the calls to the \emph{behaviour instance} callbacks. In 
+our case study we replaced them with a macro that we called 
+\texttt{?BEH\_INSTANCE}.
+
+\subsubsection{Parametrising the ETS and DETS models}
+
+For the ets and dets models the automatic approach produces correct 
+results but the number of callbacks and common functions generated is 
+high. Some preliminar clone removal reduces the ammount of functions 
+generated but it is still higher.
+
+The manual approach allows for more meaningful divisions, but we found 
+very useful to get assistance from a diff tool like \texttt{vimdiff}. Again we 
+can have a shared interface but we need to parametrise the model 
+manually.
+
+\paragraph{Automatic approach.}
+
+The models for \texttt{ets} and \texttt{dest} were more difficult to 
+parametrise. For the ETS and DETS models, the automatic approach abstracts an 
+important part of the code automatically, and the result, one more time, 
+preserves the behaviour of the original code. But on the first attempt, the 
+result of applying the automatic approach made it obvious that some prior clone 
+removal was necessary in order to avoid the creation of several identical 
+callbacks.
+
+Several of the extracted functions contained the same body, (in particular the 
+atoms \texttt{ets} and \texttt{dets} in both instances respectively). The reason 
+is that automatic behaviour extraction does not remove clones it only matches 
+the code of one input module with the other.
+
+We used this cue to remove the replication and generalise the atoms into 
+separate functions in the original modules. We used for this the refactorings 
+\texttt{Function extraction} and \texttt{Fold expression against function}.
+
+In particular we extracted two functions \texttt{module\_name/0} with 
+the name of the API module (\texttt{ets} and \texttt{dets} atoms respectively), 
+and \texttt{table\_name/0} with the name of the test table (\texttt{ets\_table} 
+and \texttt{dets\_table} atoms respectively)
+
+With this generalisation we reduced the number of common functions to 23 and 
+the number of callbacks to 40.
+
+Even after clone removal some of the callbacks generated by the automatic 
+approach -- despite being correct -- may arguably be hard to understand for 
+humans, specially because generated callbacks do not have meaningful names. For 
+example, the code in Figure~\ref{fig:auto-abs} would hardly be abstracted out by 
+a human because it does not have a meaning, but it is indeed common to both 
+instances and it is technically correct to abstract it out.
+
+\paragraph{Manual approach.}
+
+For the manual approach we used as starting point the modules with functions 
+\texttt{module\_name/0} and \texttt{table\_name/0} created for the automatic 
+aproach, and we were more conservative. For example, whenever several sentences 
+or clauses changed within the same function, we considered parametrising the 
+whole function instead of several of its parts.
+
+To find out which parts of the modules to extract when using the manual 
+approach we used \texttt{vimdiff} to understand the differences. We used one of 
+the instances to iteratively extract the unmatched parts, and then we made a 
+copy of the generated \emph{behaviour instance} and replaced the bodies of the 
+functions with the equivalent bodies of the other instance.
+
+Finally we generalised all the calls to the \emph{behaviour instance} by 
+replacing the module name with a macro called \texttt{?BEH\_INSTANCE}.
+
+Additionally, we had to manually add the functions that were in one of the 
+instances but not in the one that we used as starting point.
+
+With this procedure we generalised the implementation by introducing only 11 
+callbacks and no common functions, but we introduced a small amount of 
+replication too.
+
+The only issue we found is that the manual refactoring crashed when trying to 
+move a function that contained a macro that was defined inside a conditional 
+macro block.
+
+\begin{figure}[t]
+\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:auto-abs},language=erlang,
+basicstyle=\ttfamily\small]{figures/automatic_beh_inf/auto_abs.erl}%
+\vspace*{-2.5mm}
+\caption{Behaviour definition and instance after extraction\label{fig:auto-abs}}
+\end{figure}
+
+\subsubsection{Future work}
+
+Results suggest that future work could improve our automatic approach by 
+allowing the manual refining of matched and unmatched parts through an 
+interactive interface. The same could be applied to the manual approach.
+
+Automatic parametrisation could be applied to the manual approach, but that 
+would require a more global approach instead of an iterative one.
 
 \section{EFSM Inference}
 \label{EFSMInference}
