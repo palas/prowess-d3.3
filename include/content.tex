@@ -998,7 +998,7 @@ the behaviour of the original code.
 \subsection{EFSM Semantics}
 \label{EFSMSemantics}
 
-Extended Finite State Machines extend on conventional Finite State Machines by incorporating a \emph{data state} in addition to the \emph{control flow} state of the standard machine. This data state is described in \cite{EFSMs} as an n-dimensional space $D_{1} .. D_{n}$ that can store values. The transition labels are extended to incorporate \emph{guards} (called \emph{enabling functions} in \cite{EFSMs}) that are boolean functions over the data space. The available transitions of the machine depend not only on its control flow state (as is the case for FSMs) but also on its data state, as some transitions may be prevented by their guards. Additionally, EFSM transition labels contain \emph{update} transformations that modify the data state if the transition is executed. 
+Extended Finite State Machines extend on conventional Finite State Machines by incorporating a \emph{data state} in addition to the \emph{control flow} state of the standard machine. This data state is described in \cite{EFSMs} as an n-dimensional space that can store values. The transition labels are extended to incorporate \emph{guards} (called \emph{enabling functions} in \cite{EFSMs}) that are boolean functions over the data space. The available transitions of the machine depend not only on its control flow state (as is the case for FSMs) but also on its data state, as some transitions may be prevented by their guards. Additionally, EFSM transition labels contain \emph{update} transformations that modify the data state if the transition is executed. 
 
 The model of EFSMs used in this paper extends on that from \cite{EFSMs}, where the guard and update transitions operated solely on the data state. The model used here makes the guard and update transitions functions over both the data state and the inputs. This allows the machine to express guards on parameterised, named events, and to incorporate input parameters into its data state.
   
@@ -1018,7 +1018,7 @@ An EFSM is formally defined as an 9-tuple $M = (S,L,I,O,D,G,U,F,T)$ where:
 
 This structure is very similar to the \emph{Stream X-Machine} presented in \cite{StreamXMachines}, only it does not model the \emph{streams} of inputs and outputs, instead treating them as instantaneous, external actions.
 
-EFSMs are presented throughout this document as graphs, with the nodes representing the symbolic (or control flow) states from the set $S$, and the transitions labeled with representations of the $(L \times G)$ and $(U \times F)$ mappings for that transition. These are presented as a comma separated list of guard functions in square brackets, followed by a slash, and then a comma separated list of output and update functions in square brackets.
+EFSMs are presented throughout this document as graphs, with the nodes representing the symbolic (or control flow) states from the set $S$, and the transitions labeled with representations of the $(L \times G)$ and $(U \times F)$ mappings for that transition. These are presented as a label, a comma separated list of guard functions in square brackets followed by a slash, and then a list of output functions, and finally the update functions in square brackets.
 
 The update and output functions use the assignment syntax $:=$ to identify the value in the vector space that is computed. Any data state variables not computed explicitly are defined to be unchanged from their value before the transition; any input or output values that are not computed are assumed to be undefined (i.e. that input parameter is not present or that output value is not produced in this transition). Outputs and updates are represented using the same syntax. Outputs are presented immediately after the slash ($/$), while updates are inside square brackets.
 
@@ -1073,21 +1073,29 @@ As well as the conventional comparison and arithmetic operators, this work intro
 
 Consequently, the operators $match(pre,suf)$ and $get(pre,suf)$ are introduced to express the existence of values within strings, and to extract those values. They are designed to identify and extract vales by reference to prefix and suffix strings in the protocol. These can be the empty string, if the required value is consistently at the beginning or end of the string, or is the entirety of the string. 
 
-As an example, consider a more complicated data packet representing the first transition in the vending machine example.
+%%As an example, consider a more complicated data packet representing the first transition in the vending machine example.
 
-\begin{verbatim}
-coinstate=0;selected=coke;cokeinv=12;pepsiinv=10;
-\end{verbatim}
+%%\begin{verbatim}
+%%coinstate=0;selected=coke;cokeinv=12;pepsiinv=10;
+%%\end{verbatim}
 
-[definitions over numbers, bools, and strings]
+%%[definitions over numbers, bools, and strings]
 
 \subsection{Inference algorithm}
 \label{Algorithm}
 
+This section describes the process of inferring Extended Finite State Machines from parameterised traces in a way that builds on previous PROWESS work to infer Finite State Machines \cite{}. It also introduces the open-source Athena \cite{Athena} EFSM inference implementation that was developed in this work package.
+
+The inference process follows a similar pattern to the FSM inference processes, in that it begins by forming the observed traces into a Prefix Tree Automaton, and then merges states in the PTA where heuristics imply that they are likely to be separate instances of a single, more general behaviour. In addition to merging the \emph{control flow} states, the Athena EFSM inference implementation also merges and generalises the transitions. Where the conventional state merging heuristics merge two states this can produce situations where multiple transitions with the same label connect the same pairs of states. Taking the merging of the states as evidence that the two transitions are instances of a single system behaviour, Athena will generalise the guards, output computations, and data state update functions to represent all the observed instances. This generalisation combines well with an iterative approach to learning, since generalisations over early traces can often incorporate later instances of the same behaviour.
+
+In addition to generalising transitions at particular points in the state machine, the Athena implementation also analyses the observed data values and generalises over patterns of data re-use. EFSMs extend on FSMs by allowing data to be retained in the data state of the system. The purpose of this data retention is to either use the data for comparisons, or for computations at a later point in the system's execution. Some previous work on parameterised state machine inference has modelled this by simply retaining all data in the system state, but the Athena implementation identifies specific instances where data re-use is observable in the traces, and then generalises over patterns of this re-use in multiple traces, in the same way that the state merging heuristics identify repeated patterns of events to indicate likely equivalent behaviour. This allows the Athena implementation to grow the data state systematically, incorporating new data registers only when there is an evidence-based reason for doing so.
+
+The following subsections describe each stage of the inference process in more detail.
+
 \subsubsection{Prefix Tree Automaton generation}
 \label{PTA}
 
-[Retain trace number and event position in labels]
+As with previous FSM inference algorithms \cite{}, the EFSM inference process begins by producing a Prefix Tree Automaton (PTA) from the traces. Since EFSM models incorporate data, the trace events are parameterised with each event potentially including several arguments and outputs. To form the PTA --- which is an EFSM itself --- these trace elements must be converted to EFSM transitions. To do this the events are converted into the very specific transitions that include guards that require exactly the arguments presented, and output computation functions that simply produce the literal value observed.
 
 \begin{figure}[h]
 \begin{center}
@@ -1096,6 +1104,12 @@ coinstate=0;selected=coke;cokeinv=12;pepsiinv=10;
 \label{fig:pta}
 \end{center}
 \end{figure}
+
+An example of a PTA produced from three traces is shown in \fig{fig:pta}. However, the addition of data to the transitions means that comparing states and transitions in EFSMs produces an extremely high complexity. To counter this, the Athena implementation operates an iterative process. The initial PTA is build from the first two traces and the subsequent traces are added one-by-one later. This allows the generalisation stages described in the following sections to operate on reasonable numbers of states and transitions and allows the complexity of the comparisons to be practically applied. This process of early generalisation can be very effective, since later traces --- by definition --- instances of the general rules of the program they can often be added trivially to an EFSM model that has already inferred the general rules from early traces.
+
+Adding a trace to an existing EFSM is a simple process of walking through the EFSM and following transitions that match both the event label and data constraints of the trace. Once a point is reached at which no transition matches the next event a new transition can be added to a new state. From here, the remainder of the trace is added as specific transitions to further new states. 
+
+This can produce non-deterministic EFSMs if the newly added transition conflicts with an incorrect generalisation that has been inferred from the previous traces. This is then resolved by the \emph{splitting} process described in \sect{Splitting}.
 
 \subsubsection{Identifying possible data reuse in traces}
 \label{IntratraceDependencies}
@@ -1119,10 +1133,35 @@ coinstate=0;selected=coke;cokeinv=12;pepsiinv=10;
 \subsubsection{Evidence Driven State Merging}
 \label{EDSM}
 
-[K-tails? Blue Fringe? Negatives?]
+The current Athena EFSM inference implementation uses an extension of the K-Tails algorithm \cite{}. This compares every pairing of control flow states and measures the similarity of their \emph{tails} --- that is the reachable sequences of events to some length \emph{k} from each state. For EFSMs this comparison has to be extended to consider the similarity of the data components: guards, output computations, etc. 
+
+Guard expressions are compared both for logical similarity --- equivalence, implication, or subsection --- and their data dependences, so $r_1 = 3$ and $r_1 = 4$ are more similar than $r_1 = 3$ and $i_3 = "fish"$. This is significant, since logically distinct guards, such as $r_1 = 3$ and $r_1 = 4$, that refer to the same variables may be specific instances of a more general rule --- e.g. $r_1 < 5$.
+
+A similar approach is applied to output computations and update functions, scoring highly for instances where one function is a specific instance of the other, more general function --- e.g. $o_1 := 7$ and $o_1 := r_1 + 1$.
+
+This produces a triangular matrix of \emph{scores} for pairings of states. The highest scoring pair will be the first candidate for merging. The algorithm proceeds by forming a new state and modifying all transitions that terminated with either of the original states to terminate with the new state, and all transitions that originated from either of the original states now originating from this new state.
+
+This can identify compatible transitions if the newly merged state causes some transitions with identical labels to have matching origin and destination states. Alternatively, it can produce a non-deterministic EFSM if several transitions have the same label, different destinations, and overlapping guards. Both of these instances are handled by the generalisation process.
+
+\subsubsection{Generalisation of transitions}
+\label{Generalisation}
+
+Where state merging produces sets of transitions with identical labels, and origin and destination states it is like that these are different instances of the same behaviour. In this case the inference process produces a single transition that generalises all the observed instances.
+
+To merge distinct guard expressions, the Athena implementation uses an approach based on Inductive Logic Programming \cite{ILP}. All boolean expressions in the simple guard expression language can be placed in a lattice, and the most specific generalisation of a set of guard expressions is their least upper bound. In the Athena implementation, this is more general than a simple disjunction, but it is a deliberate overgeneralisation. Strictly, the least upper bound of $i_1 = 3$ and $i_1 = 4$ is $(i_1 = 3) \lor (i_1 = 4)$, but simply using the disjunction of observed instances would produce unwieldy guard expressions and would not provide any way to predict the outcome of unobserved instances (the trace where $i_1 = 2$, for example) so the Athena implementation will choose a more general expression such as $i_1 < 5$ or $i_1 > 2$ depending on whether there are any alternatives with the same label and different destination states. State machine inference approaches always operate by overgeneralising to allow predictions. Generalisations that are contradicted by traces observed later are discussed in \sect{Splitting}.
+
+Merging of output and update computation functions cannot be done by simple generalisation, since it must remain computable --- the EFSM models produced by the Athena implementation are intended to allow simulation as well as classification. However, due to the simple nature of the expression language it has been found that Genetic Programming \cite{} can be used effectively. The generic programming approach used int he Athena implementation begins with a population of randomly generated expressions over the input and register spaces and measures how many of the observed instances are correctly predicted by each member of the population. Those that predict the largest percentage of instances are retained and are both \emph{bred} and \emph{mutated} for subsequent rounds. 
+
+The \emph{breeding} of two expressions operates on the abstract syntax tree of each expression, and cuts each tree at a random node. The sub-tree of one expression is then grafted onto this node of the other tree to form a new expressions. For example, $o_1 := i_1$ and $o_1 := i_2 - r_1$ might be bred to form $o_1 := i_1 - r_1$. This approach is particularly effective because it is often the case that a moderately accurate expression is referencing some of the correct parts of the state but not all, so the combinations can improve this.
+
+Additionally, \emph{mutation} of expressions occurs by changing one element of the parent expression --- this includes operators, variable names, and literal values. New literal values are not chosen completely at random, since that would produce large numbers of spurious results, but are instead chosen from within the range of values observed plus/minus a small delta --- so, if values 2,3, and 5 had been observed the implementation may choose 4 or 1 as a fresh literal, but would not choose 4,096. A mutation operator that has proven particularly effective is the \emph{nudge} operator, which modifies a literal by a small delta. This is particularly effective where there are comparison operators and the previous generation of expressions was classifying many but not all observed values correctly --- $i_1 < 56$ when the true guard expression is $i_1 < 50$, for example, achieves a high accuracy when the samples include 45, 54, 58, and 65, but a small nudge creates a correct expression.
+
+The genetic programming is time-budgeted, so the implementation will not wait indefinitely for an answer, but it was able to produce appropriate results for a range of test cases when limited to 100 seconds with a population size of 40.
 
 \subsubsection{Identifying co-incidence of data re-use}
 \label{IntertraceDependencies}
+
+Both the ILP based generalisation, and the Genetic Programming are only able to generalise expressions over the data state that is represented. When the PTA is initially created there is no information about the internal data state of the system. Rather than include excessive information in the data state --- particularly as this would widen the search space for genetic programming --- the Athena inference implementation only adds a register to the model if it observes evidence of data re-use.
 
 
 
@@ -1141,10 +1180,15 @@ coinstate=0;selected=coke;cokeinv=12;pepsiinv=10;
 [Variable instantiation. Consider newly identical transitions]
 [Example with diagrams]
 
-\subsubsection{Generalisation of transitions}
-\label{Generalisation}
+\subsubsection{Contradictory Transitions}
+\label{Splitting}
+
+[producing suitable guards for non-dets]
 
 [FIXME Genetic Programming]
+
+
+[FIXME: merge with Generalisation?]
 
 
 \section{Conclusions}
