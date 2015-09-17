@@ -1135,9 +1135,9 @@ modifying the model manually.
 
 \paragraph{Automatic approach.}
 
-Frequency server example was simple, the automatic approach 
-already generated a good result by itself and we could see that the only 
-unmatched method was the body of a precondition that in one was:
+Parametrisation of the frequency server model was simple, the automatic 
+approach already generated a good result by itself and we could see that the 
+only unmatched method was the body of a precondition that in one was:
 
 \begin{verbatim}
 callback_1(Alloc, Freq) -> not lists:member(Freq,Alloc).
@@ -1149,75 +1149,89 @@ and in the other:
 callback_1(_Alloc, _Freq) -> false.
 \end{verbatim}
 
-In the automatic approach all the functions that existed, which in this case
-had common body, were replaced in both instances with simple function calls 
-that simply redirect the original interface to the common part, in order to 
-keep the original behaviour. This is good because we would not have to modify 
-anything, else, it works the same as it did, but we have a small amount of 
-boilerplate that clutters the code.
+For the automatic approach all the functions that existed in the input modules, 
+which in this case had common body, were replaced in both instances with simple 
+function calls that simply redirect the original interface to the common part, 
+in order to keep the original behaviour unchanged.
+
+This is good because we would not have to modify any module that uses the code 
+generalised, it all works the same as it did. In exchange we have a small 
+amount of boilerplate that clutters the code.
 
 \paragraph{Manual approach.}
 
-In the manual approach we just had to select the body of the function that 
-changes. We already knew which because of the automatic approach, but we could 
-have found out with \texttt{vimdiff}, for example. All we do is selecting in 
-the code that changes in one of the instances, (preferably the most complex 
-one), and applying the refactoring \texttt{Expression to behaviour instance}, 
-and set as destination module a new one that will contain the unmatched code 
-for that version.
+For the manual approach we just need to select the body of the function that 
+changes. We already knew which part it is thanks to the automatic approach, 
+but we could have found out with a tool like \texttt{vimdiff}, for example.
+
+We select the piece of code that changes in one of the input instances, and 
+apply the refactoring \texttt{Expression to behaviour instance} pointing to a 
+new unexisting module. The new module will contain the unmatched code for that 
+version.
 
 We can now copy the instance we generated and modify the callbacks to contain 
-the code corresponding to the other version. If we selected the most complex 
-version we just have to replace the code of the callback with the atom 
-\texttt{false}.
+the code corresponding to the other version. In this case, if we selected the 
+most complex version, we just have to replace the code of the callback with the 
+atom \texttt{false}.
 
 As described in Section~\ref{sub:alternative-adjustments-for-generalisation} we 
-must yet generalise the calls to the \emph{behaviour instance} callbacks. In 
+must also generalise the calls to the \emph{behaviour instance} callbacks. In 
 our case study we replaced them with a macro that we called 
 \texttt{?BEH\_INSTANCE}.
 
 \subsubsection{Parametrising the ETS and DETS models}
 
-For the ETS and DETS models, the automatic approach abstracts an important part 
-of the code automatically, and the result behaved as the original code. But the 
-first attempt showed that some prior clone removal must be done
-in order to avoid the creation of too many callbacks. 
+For the ets and dets models the automatic approach produces correct 
+results but the number of callbacks and common functions generated is 
+high. Some preliminar clone removal reduces the ammount of functions 
+generated but it is still higher.
 
-However, after clone removal some of the callbacks generated
-by the automatic approach -- despite being correct -- may arguably be hard to 
-understand for humans, specially because generated callbacks do not have 
-meaningful names. For example, the code in Figure~\ref{fig:auto-abs} would 
-hardly be abstracted out by a human because it does not have a meaning, but it 
-is indeed common to both instances and it is technically correct to abstract it 
-out.
+The manual approach allows for more meaningful divisions, but we found 
+very useful to get assistance from a diff tool like \texttt{vimdiff}. Again we 
+can have a shared interface but we need to parametrise the model 
+manually.
 
 \paragraph{Automatic approach.}
 
-Parametrising the models for \texttt{ets} and \texttt{dest} was more 
-complicated. We first tried the automatic approach in the original module and 
-some ``clones'' became obvious, several of the extracted functions contained 
-the same body, (in particular the atoms \texttt{ets} and \texttt{dets} in both 
-instances respectively). The reason is that automatic behaviour extraction does 
-not remove clones it only matches the code of one input module with the other.
+The models for \texttt{ets} and \texttt{dest} were more difficult to 
+parametrise. For the ETS and DETS models, the automatic approach abstracts an 
+important part of the code automatically, and the result, one more time, 
+preserves the behaviour of the original code. But on the first attempt, the 
+result of applying the automatic approach made it obvious that some prior clone 
+removal was necessary in order to avoid the creation of several identical 
+callbacks.
+
+Several of the extracted functions contained the same body, (in particular the 
+atoms \texttt{ets} and \texttt{dets} in both instances respectively). The reason 
+is that automatic behaviour extraction does not remove clones it only matches 
+the code of one input module with the other.
 
 We used this cue to remove the replication and generalise the atoms into 
 separate functions in the original modules. We used for this the refactorings 
 \texttt{Function extraction} and \texttt{Fold expression against function}.
 
-Concretely we extracted two functions \texttt{module\_name/0} with 
+In particular we extracted two functions \texttt{module\_name/0} with 
 the name of the API module (\texttt{ets} and \texttt{dets} atoms respectively), 
 and \texttt{table\_name/0} with the name of the test table (\texttt{ets\_table} 
-and \texttt{dets\_table} atoms respectively).
+and \texttt{dets\_table} atoms respectively)
 
 With this generalisation we reduced the number of common functions to 23 and 
 the number of callbacks to 40.
 
+Even after clone removal some of the callbacks generated by the automatic 
+approach -- despite being correct -- may arguably be hard to understand for 
+humans, specially because generated callbacks do not have meaningful names. For 
+example, the code in Figure~\ref{fig:auto-abs} would hardly be abstracted out by 
+a human because it does not have a meaning, but it is indeed common to both 
+instances and it is technically correct to abstract it out.
+
 \paragraph{Manual approach.}
 
-With the manual approach we used the already generalised modules and we were 
-more conservative. For example, whenever several things changed in the same 
-function, we often parametrised the whole function instead of several of its 
-parts.
+For the manual approach we used as starting point the modules with functions 
+\texttt{module\_name/0} and \texttt{table\_name/0} created for the automatic 
+aproach, and we were more conservative. For example, whenever several sentences 
+or clauses changed within the same function, we considered parametrising the 
+whole function instead of several of its parts.
 
 To find out which parts of the modules to extract when using the manual 
 approach we used \texttt{vimdiff} to understand the differences. We used one of 
@@ -1228,13 +1242,14 @@ functions with the equivalent bodies of the other instance.
 Finally we generalised all the calls to the \emph{behaviour instance} by 
 replacing the module name with a macro called \texttt{?BEH\_INSTANCE}.
 
-Additionally, we had to copy functions that were in one of the instances
-and not in the other.
+Additionally, we had to manually add the functions that were in one of the 
+instances but not in the one that we used as starting point.
 
-With this procedure we generalised the implementation by using only 11 
-callbacks, but we introduced a small amount of replication.
+With this procedure we generalised the implementation by introducing only 11 
+callbacks and no common functions, but we introduced a small amount of 
+replication too.
 
-The only problem we found is that the manual refactoring crashed when trying to 
+The only issue we found is that the manual refactoring crashed when trying to 
 move a function that contained a macro that was defined inside a conditional 
 macro block.
 
@@ -1245,15 +1260,14 @@ basicstyle=\ttfamily\small]{figures/automatic_beh_inf/auto_abs.erl}%
 \caption{Behaviour definition and instance after extraction\label{fig:auto-abs}}
 \end{figure}
 
-The manual approach allows for a more customised and clear division of matched and unmatched parts, and again requires
-manual parametrisation.
-
 \subsubsection{Future work}
 
-Results suggest that future work could improve our automatic approach by allowing the manual refining of matched and 
-unmatched parts through an interactive interface. The same could be applied to the manual approach. Automatic 
-parametrisation could be applied to the manual approach, but that would require a more global approach instead of an 
-iterative one.
+Results suggest that future work could improve our automatic approach by 
+allowing the manual refining of matched and unmatched parts through an 
+interactive interface. The same could be applied to the manual approach.
+
+Automatic parametrisation could be applied to the manual approach, but that 
+would require a more global approach instead of an iterative one.
 
 \section{EFSM Inference}
 \label{EFSMInference}
