@@ -33,6 +33,25 @@
 \newcommand{\fig}[1]{Figure~\ref{#1}}
 \newcommand{\eq}[1]{(\ref{#1})}
 
+\newcommand{\showcodeappendix}[1]{
+\lstinputlisting[breaklines=true,captionpos=b,language=Erlang,showlines=true,
+basicstyle=\ttfamily\footnotesize]{#1}}
+
+\newcommand{\showcodebox}[1]{
+\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,showlines=true,
+language=Erlang,basicstyle=\ttfamily\small]{#1}}
+
+\newcommand{\showcodeboxwithlabel}[2]{
+\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,showlines=true,
+label={#1},language=Erlang,basicstyle=\ttfamily\small]{#2}}
+
+\newcommand{\showcodehalfbox}[1]{
+\lstinputlisting[breaklines=true,captionpos=b,frame=tbl,showlines=true,
+language=Erlang,basicstyle=\ttfamily\small]{#1}}
+
+\newcommand{\showcodehalfboxwithlabel}[2]{
+\lstinputlisting[breaklines=true,captionpos=b,frame=tbl,showlines=true,
+label={#1},language=Erlang,basicstyle=\ttfamily\small]{#2}}
 
 
 % Bibliography
