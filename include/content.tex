@@ -436,8 +436,7 @@ We could still select the number 42, use the refactoring \emph{Expression
 to behaviour instance}, and still obtain the same result.
 
 \begin{figure}
-\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:initial_code},
-language=Erlang]{figures/assisted_beh/code/step1/bar.erl}
+\showcodeboxwithlabel{lst:initial_code}{figures/assisted_beh/code/step1/bar.erl}
 
 \caption{Initial code\label{fig:initial_code}}
 \end{figure}
@@ -449,24 +448,28 @@ we called \texttt{new}. The refactoring will modify the module \texttt{bar}
 to include the \texttt{behaviour\_info/1} function with our function
 \texttt{foo/0} listed in it, and a new module \texttt{new} has been
 created that contains the function \texttt{foo/0} and a \texttt{behaviour}
-declaration that points to the module \texttt{bar}, (Figure~\ref{fig:after_ref}).
+declaration that points to the module \texttt{bar}, 
+(Figure~\ref{fig:after_ref}).
 
 \begin{figure}
 \begin{minipage}[t]{0.65\textwidth}%
-\lstinputlisting[breaklines=true,captionpos=b,frame=tbl,label={lst:bar_after_ref},language=erlang]{
-figures/assisted_beh/code/step2/bar.erl}%
+\showcodehalfboxwithlabel{lst:bar_after_ref}{
+figures/assisted_beh/code/step2/bar.erl
+}%
 \end{minipage}%
 \begin{minipage}[t]{0.35\textwidth}%
-\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:new_after_ref},language=erlang,showlines=true]{
-figures/assisted_beh/code/step2/new.erl}%
+\showcodeboxwithlabel{lst:new_after_ref}{figures/assisted_beh/code/step2/new.erl
+}%
 \end{minipage}
 
-\caption{Behaviour definition and instance after extraction\label{fig:after_ref}}
+\caption{Behaviour definition and instance after 
+extraction\label{fig:after_ref}}
 \end{figure}
 
 
 
-\subsubsection{Adjustments for generalisation\label{sub:adjustments-for-generalisation}}
+\subsubsection{Adjustments for 
+generalisation\label{sub:adjustments-for-generalisation}}
 
 As stated before, we can see that a limitation of the refactoring
 is that the call to function \texttt{foo/0} in \texttt{bar/0} has
@@ -488,40 +491,47 @@ shown in Figure~\ref{fig:manual_adj}.
 
 \begin{figure}
 \begin{minipage}[t]{0.6\textwidth}%
-\lstinputlisting[breaklines=true,captionpos=b,frame=tbl,label={lst:bar_manual_adj},language=erlang]{
+\showcodehalfboxwithlabel{lst:bar_manual_adj}{
 figures/assisted_beh/code/step5/bar.erl}%
 \end{minipage}%
 \begin{minipage}[t]{0.4\textwidth}%
-\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:new_manual_adj},language=erlang,showlines=true]{
+\showcodeboxwithlabel{lst:new_manual_adj}{
 figures/assisted_beh/code/step5/new.erl}%
 \end{minipage}
 
-\caption{Behaviour definition and instance after adjustments for generalisation\label{fig:manual_adj}}
+\caption{Behaviour definition and instance after adjustments for 
+generalisation\label{fig:manual_adj}}
 \end{figure}
 
 
 
-\subsubsection{Alternative adjustments for generalisation\label{sub:alternative-adjustments-for-generalisation}}
+\subsubsection{Alternative adjustments for 
+generalisation\label{sub:alternative-adjustments-for-generalisation}}
 
-The generalisation process described in Section~\ref{sub:adjustments-for-generalisation}
+The generalisation process described in 
+Section~\ref{sub:adjustments-for-generalisation}
 was not automated because it can be carried out by using several alternative
 approaches which, in some cases, depend on the context of the implementation.
 If the behaviour to use can be decided at compilation time it may
-be generalised through the use of a macro (see Figure~\ref{fig:bar_manual_adj_b}).
+be generalised through the use of a macro (see 
+Figure~\ref{fig:bar_manual_adj_b}).
 \begin{figure}
-\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:bar_manual_adj_b},
-language=erlang]{figures/assisted_beh/code/step5b/bar.erl}
+\showcodeboxwithlabel{lst:bar_manual_adj_b}{
+figures/assisted_beh/code/step5b/bar.erl}
 
-\caption{Alternative adjustments for generalisation 1\label{fig:bar_manual_adj_b}}
+\caption{Alternative adjustments for generalisation 
+1\label{fig:bar_manual_adj_b}}
 \end{figure}
 If the behaviour represents a server, like is the case of \texttt{gen\_server},
 the name of the \emph{behaviour instance} can be stored in the state
-of the server or on the server dictionary (see Figure~\ref{fig:bar_manual_adj_c}).
+of the server or on the server dictionary (see 
+Figure~\ref{fig:bar_manual_adj_c}).
 \begin{figure}
-\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:bar_manual_adj_c},
-language=erlang]{figures/assisted_beh/code/step5c/bar.erl}
+\showcodeboxwithlabel{lst:bar_manual_adj_c}{
+figures/assisted_beh/code/step5c/bar.erl}
 
-\caption{Alternative adjustments for generalisation 2\label{fig:bar_manual_adj_c}}
+\caption{Alternative adjustments for generalisation 
+2\label{fig:bar_manual_adj_c}}
 \end{figure}
 
 
@@ -539,14 +549,15 @@ behaviour instance} from the \emph{behaviour instance} module. We
 will be asked for a name to give to the resulting module, (in our
 case we chose \texttt{bar\_new}), and whether we want to point all
 dynamically-qualified callbacks to \texttt{new}, (in our case we chose
-\texttt{yes}, in order to revert the adjustments made in Section~\ref{sub:adjustments-for-generalisation}).
+\texttt{yes}, in order to revert the adjustments made in 
+Section~\ref{sub:adjustments-for-generalisation}).
 
 This will produce a module \texttt{bar\_new} like the one shown in
 Figure~\ref{fig:unfold_result}.
 
 \begin{figure}
-\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:unfold_result},
-language=erlang]{figures/assisted_beh/code/step6/bar_new.erl}
+\showcodeboxwithlabel{lst:unfold_result}{
+figures/assisted_beh/code/step6/bar_new.erl}
 
 \caption{Result of unfolding\label{fig:unfold_result}}
 \end{figure}
@@ -555,7 +566,8 @@ language=erlang]{figures/assisted_beh/code/step6/bar_new.erl}
 
 \subsubsection{Removing spurious parameters}
 
-We can see that both \texttt{bar/0} and \texttt{bar/1} in Figure~\ref{fig:unfold_result}
+We can see that both \texttt{bar/0} and \texttt{bar/1} in 
+Figure~\ref{fig:unfold_result}
 behave as \texttt{bar/0} in the Figure~\ref{fig:initial_code}, but
 \texttt{bar/1} has a spurious parameter which will produce a warning.
 
@@ -568,10 +580,11 @@ By doing this we will be left with the module \texttt{bar\_new} shown
 in Figure~\ref{fig:final_result}.
 
 \begin{figure}
-\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:final_result},
-language=erlang]{figures/assisted_beh/code/step7/bar_new.erl}
+\showcodeboxwithlabel{lst:final_result}{
+figures/assisted_beh/code/step7/bar_new.erl}
 
-\caption{Result of unfolding after removing spurious parameter\label{fig:final_result}}
+\caption{Result of unfolding after removing spurious 
+parameter\label{fig:final_result}}
 \end{figure}
 
 \section{Automatic behaviour identification with Wrangler}
@@ -611,9 +624,12 @@ the refactoring into \emph{behaviour instances}), and the newly created
 
 %\subsection{Overview}
 
-The algorithm consists of three parts: tree matching (Section~\ref{sub:tree-matching}), cluster construction 
-(Section~\ref{sub:cluster-cons}), and cluster linking (Section~\ref{sub:cluster-linking}). The process starts with two 
-modules which are assumed to be similar. First we find commonalities between their ASTs,
+The algorithm consists of three parts: tree matching 
+(Section~\ref{sub:tree-matching}), cluster construction 
+(Section~\ref{sub:cluster-cons}), and cluster linking 
+(Section~\ref{sub:cluster-linking}). The process starts with two 
+modules which are assumed to be similar. First we find commonalities between 
+their ASTs,
 group the contiguous commonalities, move the commonalities to a separate
 module, and link the pieces together with function calls in order
 to preserve the original behaviour. This way we are left with three
@@ -647,7 +663,8 @@ compare the literal representation of the nodes. This way, two variables
 or two atoms are considered equal if and only if their names match.
 It is important to remove any comments from the representation before
 comparing, since these would produce false negatives.
-\item For \emph{the other nodes}, which contain structural information, we compare
+\item For \emph{the other nodes}, which contain structural information, we 
+compare
 list constructors of the same length will be considered equal independently
 list constructors of the same length will be considered equal independently
 of their elements, but a tuple and a list of the same length, or two
@@ -663,7 +680,8 @@ where nodes with the same name are considered equal.
 \includegraphics[width=0.65\textwidth]{figures/automatic_beh_inf/diagrams/dia2}
 \par
 
-\caption{Graphical representation of tree mapping\label{fig:tree-mapping-example}}
+\caption{Graphical representation of tree 
+mapping\label{fig:tree-mapping-example}}
 \end{figure}
 
 
@@ -671,7 +689,8 @@ where nodes with the same name are considered equal.
 \subsection{Cluster construction\label{sub:cluster-cons}}
 
 Cluster construction comprises the grouping of nodes in subtrees,
-and the readjustment of frontier links. Readjustment of frontier links is achieved
+and the readjustment of frontier links. Readjustment of frontier links is 
+achieved
 through the resizing of the clusters.
 
 
@@ -683,27 +702,34 @@ modules and we group in subtrees the pairs of contiguous nodes that
 have a mapping. That is, we find those groups of mapped nodes that
 are contiguous in both trees and the mapping.
 
-We say that a pair of nodes $a$ and $b$ in a tree, (parent and child respectively),
+We say that a pair of nodes $a$ and $b$ in a tree, (parent and child 
+respectively),
 are \emph{contiguous} if and only if: the parent of the projection of $b$
 is identical to the projection of $a$, and $b$ is child of $a$
 in the same position (numbering child nodes in order) as the projection
 of $b$ as a child of the projection of $a$.
 
-% In more formal terms, suppose that we are given two sets of nodes $N$ and $M$, (one per AST of
+% In more formal terms, suppose that we are given two sets of nodes $N$ and $M$, 
+(one per AST of
 % input module, where $a,b\in N$), together with a function $f$ that maps pairs
 % of common nodes from $N$ to $M$ ($f:N\rightarrow M$), (as returned
 % by the tree matching algorithm in Section~\ref{sub:tree-matching}),
-% and two functions $p$ and $q$, which map nodes in $N$ (and $M$ respecitvely) to their parents (together with their 
+% and two functions $p$ and $q$, which map nodes in $N$ (and $M$ respecitvely) 
+to their parents (together with their 
 position among the children of that parent),
 %  ($p:N\rightarrow(N,\mathbb{N})$ and
-% $q:M\rightarrow(M,\mathbb{N})$). Then, two nodes $a$ and $b$ are said to be \emph{contiguous}
-% if and only if: $\exists(i\in\text{\ensuremath{\mathbb{N}})}:(a,i)=p(b)\land(f(a),i)=q(f(b))$,
-% or $\exists(i\in\text{\ensuremath{\mathbb{N}})}:(b,i)=p(b)\land(f(a),i)=q(f(b))$,
+% $q:M\rightarrow(M,\mathbb{N})$). Then, two nodes $a$ and $b$ are said to be 
+\emph{contiguous}
+% if and only if: 
+$\exists(i\in\text{\ensuremath{\mathbb{N}})}:(a,i)=p(b)\land(f(a),i)=q(f(b))$,
+% or 
+$\exists(i\in\text{\ensuremath{\mathbb{N}})}:(b,i)=p(b)\land(f(a),i)=q(f(b))$,
 % or if there exists a node $c$ that is contiguous to both $a$ and
 % $b$.
 
 In Figure~\ref{fig:tree-clustering-example} we show how the trees
-in Figure~\ref{fig:tree-mapping-example} would be clustered, where frontier links
+in Figure~\ref{fig:tree-mapping-example} would be clustered, where frontier 
+links
 are represented as dashed arrows.
 
 \begin{figure}
@@ -711,7 +737,8 @@ are represented as dashed arrows.
 \includegraphics[width=0.69\textwidth]{figures/automatic_beh_inf/diagrams/dia3}
 \par
 
-\caption{Graphical representation of tree clustering\label{fig:tree-clustering-example}}
+\caption{Graphical representation of tree 
+clustering\label{fig:tree-clustering-example}}
 \end{figure}
 
 
@@ -760,7 +787,8 @@ flow control expressions, but that would prevent future generalisation,
 
 After we have computed the nodes that will form the clusters, we remove
 them and their links from the ASTs, and we cluster for each ASTs
-the groups of nodes that are still linked together into new ``unmatched clusters''.
+the groups of nodes that are still linked together into new ``unmatched 
+clusters''.
 
 We will now have two kinds of cluster:
 \begin{itemize}
@@ -842,7 +870,8 @@ of Erlang.
 \subsection{Extra considerations}
 
 The automatic behaviour extraction refactoring subsumes several logical
-sub-refactorings, and, thus, some considerations applied to these sub-refactorings
+sub-refactorings, and, thus, some considerations applied to these 
+sub-refactorings
 are also applicable to automatic behaviour extraction. The main logical
 sub-refactorings implied by automatic behaviour extraction are: function
 extraction, and function module migration, (i.e: moving one function
@@ -851,7 +880,8 @@ from one module to another).
 But, of course, there are some considerations that are specific to
 this refactoring as well.
 
-\subsubsection{Artificial block expressions\label{sub:artificial-block-expressions}}
+\subsubsection{Artificial block 
+expressions\label{sub:artificial-block-expressions}}
 
 As we have mentioned before, when encapsulating code into functions,
 we must ensure that the created functions are valid, and that it is
@@ -865,38 +895,36 @@ have tree topology. Splitting a tree horizontally will create several
 subtrees, which would in turn translate into separate functions. But
 it is much clearer to have them grouped in the body of the same function,
 rather than in several different functions which are called consecutively.
-For instance, without the block artefact, the input example modules in Figure~\ref{fig:block-expression-input},
+For instance, without the block artefact, the input example modules in 
+Figure~\ref{fig:block-expression-input},
 would be merged as shown in Figure~\ref{fig:block-expression-before},
 the block artefact allows the more concise representation shown in
 Figure~\ref{fig:block-expression-after}.
 
 \begin{figure}
 \begin{minipage}[t]{0.5\textwidth}%
-\lstinputlisting[breaklines=true,frame=tbl,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/1-block_artefact/1-in/mod1.erl}
+\showcodehalfbox{figures/automatic_beh_inf/1-block_artefact/1-in/mod1.erl}
 \end{minipage}%
 \begin{minipage}[t]{0.5\textwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/1-block_artefact/1-in/mod2.erl}
+\showcodebox{figures/automatic_beh_inf/1-block_artefact/1-in/mod2.erl}
 \end{minipage}
 
-\caption{Input example modules to illustrate block expression artefact\label{fig:block-expression-input}}
+\caption{Input example modules to illustrate block expression 
+artefact\label{fig:block-expression-input}}
 
 \end{figure}
 
 \begin{figure}
 \begin{minipage}[t]{0.5\textwidth}%
-\lstinputlisting[breaklines=true,frame=tbl,language=Erlang,basicstyle=\ttfamily\small]{
+\showcodehalfbox{
 figures/automatic_beh_inf/1-block_artefact/2-out-before/mod1.erl}%
 \end{minipage}%
 \begin{minipage}[t]{0.5\textwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/1-block_artefact/2-out-before/mod2.erl}%
+\showcodebox{figures/automatic_beh_inf/1-block_artefact/2-out-before/mod2.erl}%
 \end{minipage}
 
 \begin{minipage}[t]{1\textwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/1-block_artefact/2-out-before/out.erl}%
+\showcodebox{figures/automatic_beh_inf/1-block_artefact/2-out-before/out.erl}%
 \end{minipage}
 
 \caption{Output of modules in Figure~\ref{fig:block-expression-input} without
@@ -906,17 +934,15 @@ block expression artefact\label{fig:block-expression-before}}
 
 \begin{figure}
 \begin{minipage}[t]{0.5\textwidth}%
-\lstinputlisting[breaklines=true,frame=tbl,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/1-block_artefact/3-out-after/mod1.erl}%
+\showcodehalfbox{figures/automatic_beh_inf/1-block_artefact/3-out-after/mod1.erl
+}%
 \end{minipage}%
 \begin{minipage}[t]{0.5\textwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/1-block_artefact/3-out-after/mod2.erl}%
+\showcodebox{figures/automatic_beh_inf/1-block_artefact/3-out-after/mod2.erl}%
 \end{minipage}
 
 \begin{minipage}[t]{\textwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/1-block_artefact/3-out-after/out.erl}%
+\showcodebox{figures/automatic_beh_inf/1-block_artefact/3-out-after/out.erl}%
 \end{minipage}
 
 \caption{Output of modules in Figure~\ref{fig:block-expression-input} with
@@ -925,15 +951,14 @@ block expression artefact\label{fig:block-expression-after}}
 
 \begin{figure*}
 \begin{minipage}[t]{0.5\linewidth}%
-\lstinputlisting[breaklines=true,frame=tbl,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/2-interference/1-in/mod1.erl}%
+\showcodehalfbox{figures/automatic_beh_inf/2-interference/1-in/mod1.erl}%
 \end{minipage}%
 \begin{minipage}[t]{0.5\linewidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/2-interference/1-in/mod2.erl}%
+\showcodebox{figures/automatic_beh_inf/2-interference/1-in/mod2.erl}%
 \end{minipage}
 \vspace*{-2.5mm}
-\caption{Input example modules to illustrate interference between artefacts\label{fig:interference-input}}
+\caption{Input example modules to illustrate interference between 
+artefacts\label{fig:interference-input}}
 \end{figure*}
 
 
@@ -944,7 +969,8 @@ clusters and we introduce an artificial block expression around them
 in both source modules. In the second pass, the blocks will be extracted
 as a single function, and we can remove them easily at post-processing.
 We also ensure that artificial blocks are not detached from their
-child sentences by adding an exception for them in the frontier link readjustment
+child sentences by adding an exception for them in the frontier link 
+readjustment
 procedure.
 
 
@@ -977,7 +1003,8 @@ which could be fixed to preserve the semantics just by adding some
 small artefacts, (see Section~\ref{sub:interference}).
 
 
-\subsubsection{Exported variables in artificial block expressions\label{sub:interference}}
+\subsubsection{Exported variables in artificial block 
+expressions\label{sub:interference}}
 
 We can export variables from a function extracted as a block if we
 make it return a tuple with the variables exported and we match them
@@ -989,32 +1016,32 @@ program. To avoid this, whenever variables are exported, we will only
 create artificial block expressions that do not contain the last expression
 of a clause. We do not have to worry about modifying the value of
 intermediate sentences in clauses, because we know that these values
-were discarded in the original code, (e.g: in the code of Figure~\ref{fig:interference-input},
+were discarded in the original code, (e.g: in the code of 
+Figure~\ref{fig:interference-input},
 we cannot extract a common function for the whole clause of the \texttt{case}
 expression because it both exports and returns values, but we can
 create one function for the last expression and one for the rest as
-shown in Figure~\ref{fig:interference-output}). This does not produce an ideal solution in every
+shown in Figure~\ref{fig:interference-output}). This does not produce an ideal 
+solution in every
 case, and it is only implemented when the frontier link is in a clause,
 but without it the previous approaches would modify behaviour in cases
 where values are returned and exported simultaneously from a clause.
 
 \begin{figure}
 \begin{minipage}[t]{1\textwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/2-interference/2-out/mod1.erl}%
+\showcodehalfbox{figures/automatic_beh_inf/2-interference/2-out/mod1.erl}%
 \end{minipage}
 
 \begin{minipage}[t]{1\textwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/2-interference/2-out/mod2.erl}%
+\showcodebox{figures/automatic_beh_inf/2-interference/2-out/mod2.erl}%
 \end{minipage}
 
 \begin{minipage}[t]{1\textwidth}%
-\lstinputlisting[breaklines=true,frame=tblr,language=Erlang,basicstyle=\ttfamily\small]{
-figures/automatic_beh_inf/2-interference/2-out/out.erl}%
+\showcodebox{figures/automatic_beh_inf/2-interference/2-out/out.erl}%
 \end{minipage}
 \vspace*{-2.5mm}
-\caption{Output of modules generated from those in Figure~\ref{fig:interference-input}\label{fig:interference-output}}
+\caption{Output of modules generated from those in 
+Figure~\ref{fig:interference-input}\label{fig:interference-output}}
 \end{figure}
 
 
@@ -1023,7 +1050,7 @@ In the second pass we will ensure that there are no exported variables,
 other unusual kind of frontier links where we cannot automatically fix
 the export of variables, (e.g: when the frontier link is between
 the elements of a list and the list, and the element binds variables that
-are used outside of the list). In those cases we will still keep the code 
+are used outside of the list). In those cases we will still keep the code
 consistency in exchange for some replication by moving the frontier so that
 it does not interfere with the variable scope.
 
@@ -1047,10 +1074,12 @@ none of the existing functions in the destination module conflicts
 with the ones we are moving, in our case this is made easier by the
 fact that the destination module is new and, as such, there are no
 previous existing functions. Nevertheless, something similar can happen
-for function whose name is not generated automatically (see Section~\ref{sub:function-arity-collision}).
+for function whose name is not generated automatically (see 
+Section~\ref{sub:function-arity-collision}).
 
 
-\subsubsection{Function migration artefact\label{sub:function-migration-artefact}}
+\subsubsection{Function migration 
+artefact\label{sub:function-migration-artefact}}
 The headers of functions doin Erlang, as in many languages, are hard to
 The headers of functions in Erlang, as in many languages, are hard to
 divide through function extraction. Not being able to divide them
@@ -1107,20 +1136,28 @@ the behaviour of the original code.
 \subsection{Case study}
 \label{sec:case-study}
 
-We have successfully tried both techniques  (i.e. behaviour extraction and automated behaviour identification) in two QuickCheck models with two variants each:
+We have successfully tried both techniques  (i.e. behaviour extraction and 
+automated behaviour identification) in two QuickCheck models with two variants 
+each:
 
 \begin{enumerate}
- \item models for testing ets and dets term storage libraries, which are part of the Erlang standard distibution;
- \item models for testing the frequency server (extracted from \cite{CesariniThompson} and used as a case study in \cite{ExtractingQC}).
+ \item models for testing ets and dets term storage libraries, which are part 
+of 
+the Erlang standard distibution;
+ \item models for testing the frequency server (extracted from 
+\cite{CesariniThompson} and used as a case study in \cite{ExtractingQC}).
 \end{enumerate}
-{\color{red} These examples are included with the software deliverable and also included in Appendix BLAH [certainly include the frequency server one, and (probably) a condensed version of the dets/ets example].}
+These examples are included with the software deliverable and also 
+included in Appendices~\ref{freq-server-code}~and~\ref{ets-dets-code}.
 
 \subsubsection{Functionality}
 
-Both techniques worked except for a small issue when applying the manual technique to a small piece of code that 
+Both techniques worked except for a small issue when applying the manual 
+technique to a small piece of code that 
 depended on a macro inside a conditional macro block. 
 
-We now evaluate the results in more detail, examining some of the trade-offs involved in applying these techniques in practice as well as and 
+We now evaluate the results in more detail, examining some of the trade-offs 
+involved in applying these techniques in practice as well as and 
 possible alternatives and future improvements to the work.
 
 \subsubsection{Parametrising the frequency server model}
@@ -1203,10 +1240,11 @@ important part of the code automatically, and the result, one more time,
 preserves the behaviour of the original code. But on the first attempt, the 
 result of applying the automatic approach made it obvious that some prior clone 
 removal was necessary in order to avoid the creation of several identical 
-callbacks.:
+callbacks:
 
 Several of the extracted functions contained the same body, (in particular the 
-atoms \texttt{ets} and \texttt{dets} in both instances respectively). The reason 
+atoms \texttt{ets} and \texttt{dets} in both instances respectively). The 
+reason 
 is that automatic behaviour extraction does not remove clones it only matches 
 the code of one input module with the other.
 
@@ -1225,7 +1263,8 @@ the number of callbacks to 40.
 Even after clone removal some of the callbacks generated by the automatic 
 approach -- despite being correct -- may arguably be hard to understand for 
 humans, specially because generated callbacks do not have meaningful names. For 
-example, the code in Figure~\ref{fig:auto-abs} would hardly be abstracted out by 
+example, the code in Figure~\ref{fig:auto-abs} would hardly be abstracted out 
+by 
 a human because it does not have a meaning, but it is indeed common to both 
 instances and it is technically correct to abstract it out.
 
@@ -1258,8 +1297,7 @@ move a function that contained a macro that was defined inside a conditional
 macro block.
 
 \begin{figure}[t]
-\lstinputlisting[breaklines=true,captionpos=b,frame=tblr,label={lst:auto-abs},language=erlang,
-basicstyle=\ttfamily\small]{figures/automatic_beh_inf/auto_abs.erl}%
+\showcodeboxwithlabel{lst:auto-abs}{figures/automatic_beh_inf/auto_abs.erl}%
 \vspace*{-2.5mm}
 \caption{Behaviour definition and instance after extraction\label{fig:auto-abs}}
 \end{figure}
