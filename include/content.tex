@@ -1412,13 +1412,15 @@ Where state merging produces sets of transitions with identical labels, and orig
 
 To merge distinct guard expressions, the Athena implementation uses an approach based on Inductive Logic Programming \cite{ILP}. All boolean expressions in the simple guard expression language can be placed in a lattice, and the most specific generalisation of a set of guard expressions is their least upper bound. In the Athena implementation, this is more general than a simple disjunction, but it is a deliberate overgeneralisation. Strictly, the least upper bound of $i_1 = 3$ and $i_1 = 4$ is $(i_1 = 3) \lor (i_1 = 4)$, but simply using the disjunction of observed instances would produce unwieldy guard expressions and would not provide any way to predict the outcome of unobserved instances (the trace where $i_1 = 2$, for example) so the Athena implementation will choose a more general expression such as $i_1 < 5$ or $i_1 > 2$ depending on whether there are any alternatives with the same label and different destination states. State machine inference approaches always operate by overgeneralising to allow predictions. Generalisations that are contradicted by traces observed later are discussed in \sect{Splitting}.
 
+Where the merged transitions have different destinations will cause the Athena implementation to immediately attempt to merge the targets. A process of \emph{zipping} occurs as a state merge causes a chain of states to be merged with each other. This is a common occurrence where several branches of the PTA are really instances of the same behaviour and merging of their first element identifies this. In the event that a later element of the branches contradicts, this zipping can be undone --- either in part or in full --- by the contradiction resolution procedure described in \sect{Splitting}.
+
 Merging of output and update computation functions cannot be done by simple generalisation, since it must remain computable --- the EFSM models produced by the Athena implementation are intended to allow simulation as well as classification. However, due to the simple nature of the expression language it has been found that Genetic Programming \cite{} can be used effectively. The generic programming approach used int he Athena implementation begins with a population of randomly generated expressions over the input and register spaces and measures how many of the observed instances are correctly predicted by each member of the population. Those that predict the largest percentage of instances are retained and are both \emph{bred} and \emph{mutated} for subsequent rounds. 
 
 The \emph{breeding} of two expressions operates on the abstract syntax tree of each expression, and cuts each tree at a random node. The sub-tree of one expression is then grafted onto this node of the other tree to form a new expressions. For example, $o_1 := i_1$ and $o_1 := i_2 - r_1$ might be bred to form $o_1 := i_1 - r_1$. This approach is particularly effective because it is often the case that a moderately accurate expression is referencing some of the correct parts of the state but not all, so the combinations can improve this.
 
 Additionally, \emph{mutation} of expressions occurs by changing one element of the parent expression --- this includes operators, variable names, and literal values. New literal values are not chosen completely at random, since that would produce large numbers of spurious results, but are instead chosen from within the range of values observed plus/minus a small delta --- so, if values 2,3, and 5 had been observed the implementation may choose 4 or 1 as a fresh literal, but would not choose 4,096. A mutation operator that has proven particularly effective is the \emph{nudge} operator, which modifies a literal by a small delta. This is particularly effective where there are comparison operators and the previous generation of expressions was classifying many but not all observed values correctly --- $i_1 < 56$ when the true guard expression is $i_1 < 50$, for example, achieves a high accuracy when the samples include 45, 54, 58, and 65, but a small nudge creates a correct expression.
 
-The genetic programming is time-budgeted, so the implementation will not wait indefinitely for an answer, but it was able to produce appropriate results for a range of test cases when limited to 100 seconds with a population size of 40.
+The genetic programming is time-budgeted, so the implementation will not wait indefinitely for an answer, but it was able to produce appropriate results for a range of test cases when limited to 100 seconds with a population size of 40. Where no suitable resolution can be found the state may need to be split, so the EFSM model is passed on to the contradiction resolution procedure described in \sect{Splitting}.
 
 \subsubsection{Identifying co-incidence of data re-use}
 \label{IntertraceDependencies}
@@ -1436,7 +1438,7 @@ Both the ILP based generalisation, and the Genetic Programming are only able to 
 
 Whenever a trace is added to the system it is analysed for instances of data re-use. These are referred to as Intra-Trace Dependencies. The Athena implementation is able to identify data re-use of both complete values, such as those shown in \fig{fig:pta}, or substrings of values. 
 
-%[FIXME move later?] In the latter case the guard and output expression language supports the operators $match$ and $get$. The $match$ can test whether a string matches a general pattern --- containing a variable value surrounded by a specific prefix and suffix, but not necessarily at a given position\footnote{This was designed to support HTTP style key-value pairings, where the order of pairings is not enforced but their syntax makes them identifiable.}. The $get$ operator is used in output and update computations and retrieves the variable value from such a pattern. For example, in the event that $i_1 = "key=xyz;"$ the expression $match("key=",";",r_1)$ would evaluate to $true$, while the expression $get("key=",";",r_1)$ would evaluate to the string $"xyz"$. The application of these operators is still experimental and is not applied extensively in the examples.
+%[FIXME move later? Or drop because its not used in the case study?] In the latter case the guard and output expression language supports the operators $match$ and $get$. The $match$ can test whether a string matches a general pattern --- containing a variable value surrounded by a specific prefix and suffix, but not necessarily at a given position\footnote{This was designed to support HTTP style key-value pairings, where the order of pairings is not enforced but their syntax makes them identifiable.}. The $get$ operator is used in output and update computations and retrieves the variable value from such a pattern. For example, in the event that $i_1 = "key=xyz;"$ the expression $match("key=",";",r_1)$ would evaluate to $true$, while the expression $get("key=",";",r_1)$ would evaluate to the string $"xyz"$. The application of these operators is still experimental and is not applied extensively in the examples.
 
 The formal structure of an Intra-Trace Dependency is as a triple containing the value that was reused and two further triples identifying the event and parameter of the first and second instance of the value. For example, the instance of re-use identified in the first trace in \fig{fig:pta} would be represented as $("coke",(1,i,1),(3,o,1))$, representing that the re-used value is $"coke"$ and it is used in the 1st event as input 1, and in the 3rd event as output 1.
 
@@ -1458,8 +1460,8 @@ At this point the Athena implementation adds a fresh register to the EFSM data s
 \begin{center}
 %\includegraphics[width=7cm]{figures/efsm/vend3.eps}
 [FIXME: up-to-date diagram]
-\caption{The FSM after simple merging}
-\label{fig:FSM}
+\caption{The EFSM after data re-use identification}
+\label{fig:EFSM}
 \end{center}
 \end{figure}
 
@@ -1468,13 +1470,13 @@ The resulting vending machine diagram is shown in \fig{fig:EFSM}. The standard E
 \subsubsection{Contradictory Transitions}
 \label{Splitting}
 
-[producing suitable guards for non-dets]
+The previous sections have discussed how the inference process generalises from the observed instances to build an EFSM model that explains all the observed traces and can predict future values. However, with iterative learning it is possible that a trace observed later may contradict the EFSM model. It can do this by following a transition in apparent violation of its guard, producing a different output from that computed by the EFSM, or by performing an action that should not be possible from this control flow state.
 
-[FIXME Genetic Programming]
+In these cases either transitions or control flow states need to be \emph{split} to incorporate the new data without contradiction. Ideally, such contradictions can be resolved by re-running the genetic programming described in \sect{Generalisation} incorporating the new information. This can produce improved guard expressions, since more information provides a more accurate fitness function for the evolutionary process. 
 
+However, where the contradiction at a given control flow state cannot be resolved over the data this must be the result of control flow states being merged in the model that are different states of the true system. In this case the states need to be split, but it may not be the state at which the contradiction appears that is the state that was incorrectly merged, the true system may have branched several events earlier. To unravel this, the Athena implementation uses the retained trace and event data stored in the transitions and backtracks along each of the traces involved in the contradiction. The immediately preceding events maybe completely identical (in both event and data) so the backtracking continues until there is an observable difference. At this point the two explicit transitions are re-added to the model and the subsequent traces re-added in the style of the original PTA. The merging and generalisation process can then continue, and that will re-merge any states that are still compatible.
 
-[FIXME: merge with Generalisation?]
-
+It is important that this processes is performed over the original trace information and not over the transitions in the generalised models because loops in the EFSM can obscure the true position of the contradiction.
 
 \section{Conclusions}
 \label{concs}
