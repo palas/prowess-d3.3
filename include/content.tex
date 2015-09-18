@@ -1337,14 +1337,14 @@ An EFSM is formally defined as an 9-tuple $M = (S,L,I,O,D,G,U,F,T)$ where:
 
 This structure is very similar to the \emph{Stream X-Machine} presented in \cite{StreamXMachines}, only it does not model the \emph{streams} of inputs and outputs, instead treating them as instantaneous, external actions.
 
-EFSMs are presented throughout this document as graphs, with the nodes representing the symbolic (or control flow) states from the set $S$, and the transitions labeled with representations of the $(L \times G)$ and $(U \times F)$ mappings for that transition. These are presented as a label, a comma separated list of guard functions in square brackets followed by a slash, and then a list of output functions, and finally the update functions in square brackets.
+EFSMs are presented throughout this document as graphs, with the nodes representing the symbolic (or control flow) states from the set $S$, and the transitions labeled with representations of the label, guard, output, and update functions for that transition. These are presented as a label, a comma separated list of guard functions in square brackets followed by a slash, and then a list of output functions, and finally the update functions in square brackets. The list of guard functions is logically conjoined, but is often more readable as a list rather than a single large expression, and there are implementation advantages to being able to apply list concatenation operations. The output and update functions must all assign different elements of the respective spaces, but they operate over the anterior state only, so they can be considered to occur concurrently.
 
-The update and output functions use the assignment syntax $:=$ to identify the value in the vector space that is computed. Any data state variables not computed explicitly are defined to be unchanged from their value before the transition; any input or output values that are not computed are assumed to be undefined (i.e. that input parameter is not present or that output value is not produced in this transition). Outputs and updates are represented using the same syntax. Outputs are presented immediately after the slash ($/$), while updates are inside square brackets.
+The update and output functions use the assignment syntax $:=$ to identify the value in the vector space that is computed. Any data state variables not computed explicitly are defined to be unchanged from their value before the transition; any input or output values that are not computed are assumed to be undefined (i.e. that input parameter is not present or that output value is not produced in this transition). Outputs and updates are represented using the same syntax. Outputs are presented immediately after the slash ($/$), while updates are inside square brackets. All output and update expressions operate over the anterior state of the data registers, so $f[r_1 = 7]/o_1 := r_1 [r_1 := r_1 + 1]$ will result in $o_1$ being assigned the value 7, and the posterior state of $r_1$ will be 8.
 
 The general form of a transition is: 
 
 \begin{center}
-$s_n \xrightarrow{e[g_1, .. g_n]/o_1, .. o_n[u_1, .. u_n]} s_m$ 
+$s_n \xrightarrow{e[g_1, .. g_n]/o_1, .. o_n [u_1, .. u_n]} s_m$ 
 \end{center}
 
 The arrow above represents a transition from state $S_n$ to $S_m$ with the event label $e$, restricted by guard expressions $g_1$ through $g_n$, producing outputs defined by $o_1$ through $o_n$, and updating the data state according to $u_1$ through $u_n$. The guard expressions are logically conjoined --- i.e. they must all be true for the transition to be allowed. Similarly, the output and update expressions should not be contradictory. In practice there will be one output or update expression for each output produced and each data state register that is altered. For example:
@@ -1353,7 +1353,7 @@ The arrow above represents a transition from state $S_n$ to $S_m$ with the event
 $s_n \xrightarrow{vend[r_{2} \geq 100]/o_{1} :=r_{1}[r_{2} := r_{2} - 100]} s_m$
 \end{center}
 
-This arrow represents a transition that occurs with the event $vend$ when $r2$ is greater than 100, and produces the output with a value from the data space variable $r1$, and updates the data space variable $r2$ by subtracting 100 from the previous value. If there are no guard expressions or no outputs or updates then the relevant section can be omitted entirely:
+This arrow represents a transition that occurs with the event $vend$ when $r_2$ is greater than 100, and produces the output with a value from the data space variable $r_1$, and updates the data space variable $r_2$ by subtracting 100 from the previous value. If there are no guard expressions or no outputs or updates then the relevant section can be omitted entirely:
 
 \begin{center}
 $s_1 \xrightarrow{select[i_{1}="coke"]} s_2$
@@ -1390,22 +1390,16 @@ Update and output expressions use an assignment syntax of the form $o_n := <expr
 
 As well as the conventional comparison and arithmetic operators, this work introduces operators for string comparison and extraction. In many protocols the values that must be stored in the internal data state are not present in isolation, but as parts of larger blocks (network data packets, for example). The inference process described in \sect{Algorithm} is designed to operate without prior knowledge of the structure of the data. 
 
-Consequently, the operators $match(pre,suf)$ and $get(pre,suf)$ are introduced to express the existence of values within strings, and to extract those values. They are designed to identify and extract vales by reference to prefix and suffix strings in the protocol. These can be the empty string, if the required value is consistently at the beginning or end of the string, or is the entirety of the string. 
+Consequently, the operators $match(pre,suf,var)$ and $get(pre,suf,var)$ are introduced to express the existence of values within strings, and to extract those values. They are designed to identify and extract vales by reference to prefix and suffix strings in the protocol. These can be the empty string, if the required value is consistently at the beginning or end of the string, or is the entirety of the string. 
 
-%%As an example, consider a more complicated data packet representing the first transition in the vending machine example.
-
-%%\begin{verbatim}
-%%coinstate=0;selected=coke;cokeinv=12;pepsiinv=10;
-%%\end{verbatim}
-
-%%[definitions over numbers, bools, and strings]
+The $match$ operator can test whether a string matches a general pattern --- containing a variable value surrounded by a specific prefix and suffix, but not necessarily at a given position\footnote{This was designed to support HTTP style key-value pairings, where the order of pairings is not enforced but their syntax makes them identifiable.}. The $get$ operator is used in output and update computations and retrieves the variable value from such a pattern. For example, in the event that $i_1 = "key=xyz;"$ the expression $match("key=",";",r_1)$ would evaluate to $true$ (since the value of $r_1$ does contain a variable component that is prefixed by $"key="$ and suffixed by $";"$), while the expression $get("key=",";",r_1)$ would evaluate to the string $"xyz"$. The application of these operators is still experimental and is not applied extensively in the examples. The expressions $match("","",x)$ and $get("","",x)$ are equivalent to $true$ and $x$ respectively.
 
 \subsection{Inference algorithm}
 \label{Algorithm}
 
 This section describes the process of inferring Extended Finite State Machines from parameterised traces in a way that builds on previous PROWESS work to infer Finite State Machines \cite{}. It also introduces the open-source Athena \cite{Athena} EFSM inference implementation that was developed in this work package.
 
-The inference process follows a similar pattern to the FSM inference processes, in that it begins by forming the observed traces into a Prefix Tree Automaton, and then merges states in the PTA where heuristics imply that they are likely to be separate instances of a single, more general behaviour. In addition to merging the \emph{control flow} states, the Athena EFSM inference implementation also merges and generalises the transitions. Where the conventional state merging heuristics merge two states this can produce situations where multiple transitions with the same label connect the same pairs of states. Taking the merging of the states as evidence that the two transitions are instances of a single system behaviour, Athena will generalise the guards, output computations, and data state update functions to represent all the observed instances. This generalisation combines well with an iterative approach to learning, since generalisations over early traces can often incorporate later instances of the same behaviour.
+The inference process follows a similar pattern to the FSM inference processes, in that it begins by forming the observed traces into a Prefix Tree Automaton, and then merges states in the PTA where heuristics imply that they are likely to be separate instances of a single, more general behaviour. In addition to merging the \emph{control flow} states, the Athena EFSM inference implementation also merges and generalises the transitions. Where the conventional state merging heuristics merge two states this can produce situations where multiple transitions with the same label connect the same pairs of states. Taking the merging of the states as evidence that the two transitions are instances of a single system behaviour, Athena will generalise the guards, output computations, and data state update functions to represent all the observed instances. This generalisation combines well with an iterative approach to learning, since generalisations over early traces can often incorporate later instances of the same behaviour --- when those traces are added to the EFSM model they will simply walk over the existing, general transitions without adding new transitions or states that need merging\footnote{Their trace and event number details are added to the relevant transitions' logs, though, in case there is a contradiction detected later.}.
 
 In addition to generalising transitions at particular points in the state machine, the Athena implementation also analyses the observed data values and generalises over patterns of data re-use. EFSMs extend on FSMs by allowing data to be retained in the data state of the system. The purpose of this data retention is to either use the data for comparisons, or for computations at a later point in the system's execution. Some previous work on parameterised state machine inference has modelled this by simply retaining all data in the system state, but the Athena implementation identifies specific instances where data re-use is observable in the traces, and then generalises over patterns of this re-use in multiple traces, in the same way that the state merging heuristics identify repeated patterns of events to indicate likely equivalent behaviour. This allows the Athena implementation to grow the data state systematically, incorporating new data registers only when there is an evidence-based reason for doing so.
 
@@ -1429,6 +1423,8 @@ An example of a PTA produced from three traces is shown in \fig{fig:pta}. Howeve
 Adding a trace to an existing EFSM is a simple process of walking through the EFSM and following transitions that match both the event label and data constraints of the trace. Once a point is reached at which no transition matches the next event a new transition can be added to a new state. From here, the remainder of the trace is added as specific transitions to further new states. 
 
 This can produce non-deterministic EFSMs if the newly added transition conflicts with an incorrect generalisation that has been inferred from the previous traces. This is then resolved by the \emph{splitting} process described in \sect{Splitting}.
+
+That the traces are added iteratively can mean that particular orderings of the traces will cause the model to resolve more quickly than others, but the process of merging and then splitting on contradictions, and then re-merging continues until the model reaches a stable state such that further merges are scored below some user-defined threshold. This results in a consistent eventual model regardless or trace order. As well as reducing the complexity of any one iteration of the algorithm, the iterative approach allows the Athena implementation to operate over \emph{live} data, stabilising its model based on what it has observed \emph{so far}. With this as a design intention there has not been any emphasis placed on identifying particularly good or bad orderings, since this would not be controllable in a live learning scenario. 
 
 \subsubsection{Evidence Driven State Merging}
 \label{EDSM}
@@ -1503,7 +1499,7 @@ At this point the Athena implementation adds a fresh register to the EFSM data s
 \end{center}
 \end{figure}
 
-The resulting vending machine diagram is shown in \fig{fig:EFSM}. The standard EDSM process can now repeat on this machine, and will likely merge further states, bringing more trace re-use patterns into alignment.
+The resulting vending machine diagram is shown in \fig{fig:EFSM}. The standard Evidence Driven State Merging process can now repeat on this machine, and will likely merge further states, bringing more trace re-use patterns into alignment.
 
 \subsubsection{Contradictory Transitions}
 \label{Splitting}
