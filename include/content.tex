@@ -1110,33 +1110,34 @@ We have successfully tried both techniques  (i.e. behaviour extraction and autom
 
 \begin{enumerate}
  \item models for testing ets and dets term storage libraries, which are part of the Erlang standard distibution;
- \item models for testing the frequency server (extracted from \cite{CesariniThompson})
+ \item models for testing the frequency server (extracted from \cite{CesariniThompson} and used as a case study in \cite{ExtractingQC}).
 \end{enumerate}
+{\color{red} These examples are included with the software deliverable and also included in Appendix BLAH [certainly include the frequency server one, and (probably) a condensed version of the dets/ets example].}
 
 \subsubsection{Functionality}
 
 Both techniques worked except for a small issue when applying the manual technique to a small piece of code that 
 depended on a macro inside a conditional macro block. 
 
-We now evaluate the results in more detail, examining some of the trade-offs and 
-possible alternatives (and future improvements) in applying these techniques in practice.
+We now evaluate the results in more detail, examining some of the trade-offs involved in applying these techniques in practice as well as and 
+possible alternatives and future improvements to the work.
 
 \subsubsection{Parametrising the frequency server model}
 
-For the frequency server model the automatic approach worked just as expected 
-since the difference was small and located in one single place. Parametrisation 
+For the frequency server model the automatic approach worked just as expected, 
+since the difference was small and located in a single place. Parametrisation 
 is done automatically in exchange for some automatically generated interface 
-boilerplate.
+boilerplate code.
 
-The manual approach for frequency server allows to keep the 
-interface of both modules in the common side, but parametrisation of the 
+The manual approach for frequency server allows us to keep the 
+interface of both modules {\color{red}common}, but parametrisation of the 
 unmatched part must be done manually, for example through a macro or by 
 modifying the model manually.
 
 \paragraph{Automatic approach.}
 
-Frequency server example was simple, the automatic approach 
-already generated a good result by itself and we could see that the only 
+The frequency server example was simple, and the automatic approach 
+already generated a good result by itself: we could see that the only 
 unmatched method was the body of a precondition that in one was:
 
 \begin{verbatim}
@@ -1149,11 +1150,10 @@ and in the other:
 callback_1(_Alloc, _Freq) -> false.
 \end{verbatim}
 
-In the automatic approach all the functions that existed, which in this case
-had common body, were replaced in both instances with simple function calls 
-that simply redirect the original interface to the common part, in order to 
+In the automatic approach all the existing common functions that existed were replaced in both instances with simple function calls 
+that simply redirected the original interface to the common part, in order to 
 keep the original behaviour. This is good because we would not have to modify 
-anything, else, it works the same as it did, but we have a small amount of 
+anything, and it works the same as before, but we have a small amount of 
 boilerplate that clutters the code.
 
 \paragraph{Manual approach.}
@@ -1161,18 +1161,18 @@ boilerplate that clutters the code.
 In the manual approach we just had to select the body of the function that 
 changes. We already knew which because of the automatic approach, but we could 
 have found out with \texttt{vimdiff}, for example. All we do is selecting in 
-the code that changes in one of the instances, (preferably the most complex 
+the code that changes in one of the instances, (preferably the more complex 
 one), and applying the refactoring \texttt{Expression to behaviour instance}, 
 and set as destination module a new one that will contain the unmatched code 
 for that version.
 
 We can now copy the instance we generated and modify the callbacks to contain 
-the code corresponding to the other version. If we selected the most complex 
+the code corresponding to the other version. If we selected the more complex 
 version we just have to replace the code of the callback with the atom 
 \texttt{false}.
 
 As described in Section~\ref{sub:alternative-adjustments-for-generalisation} we 
-must yet generalise the calls to the \emph{behaviour instance} callbacks. In 
+must still generalise the calls to the \emph{behaviour instance} callbacks. In 
 our case study we replaced them with a macro that we called 
 \texttt{?BEH\_INSTANCE}.
 
@@ -1185,7 +1185,7 @@ in order to avoid the creation of too many callbacks.
 
 However, after clone removal some of the callbacks generated
 by the automatic approach -- despite being correct -- may arguably be hard to 
-understand for humans, specially because generated callbacks do not have 
+understand for humans, specially because the callbacks generated do not have 
 meaningful names. For example, the code in Figure~\ref{fig:auto-abs} would 
 hardly be abstracted out by a human because it does not have a meaning, but it 
 is indeed common to both instances and it is technically correct to abstract it 
@@ -1193,7 +1193,7 @@ out.
 
 \paragraph{Automatic approach.}
 
-Parametrising the models for \texttt{ets} and \texttt{dest} was more 
+Parametrising the models for \texttt{ets} and \texttt{dets} was more 
 complicated. We first tried the automatic approach in the original module and 
 some ``clones'' became obvious, several of the extracted functions contained 
 the same body, (in particular the atoms \texttt{ets} and \texttt{dets} in both 
