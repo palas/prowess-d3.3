@@ -176,6 +176,7 @@ percent of the existing code base.
 
 
 \section{Assisted behaviour creation and unfolding with Wrangler}
+\label{sec:assisted-creation}
 
 In order to prevent code replication, it is usually possible and
 convenient to abstract and parametrise those common parts of the implementation
@@ -1110,34 +1111,35 @@ We have successfully tried both techniques  (i.e. behaviour extraction and autom
 
 \begin{enumerate}
  \item models for testing ets and dets term storage libraries, which are part of the Erlang standard distibution;
- \item models for testing the frequency server (extracted from \cite{CesariniThompson})
+ \item models for testing the frequency server (extracted from \cite{CesariniThompson} and used as a case study in \cite{ExtractingQC}).
 \end{enumerate}
+{\color{red} These examples are included with the software deliverable and also included in Appendix BLAH [certainly include the frequency server one, and (probably) a condensed version of the dets/ets example].}
 
 \subsubsection{Functionality}
 
 Both techniques worked except for a small issue when applying the manual technique to a small piece of code that 
 depended on a macro inside a conditional macro block. 
 
-We now evaluate the results in more detail, examining some of the trade-offs and 
-possible alternatives (and future improvements) in applying these techniques in practice.
+We now evaluate the results in more detail, examining some of the trade-offs involved in applying these techniques in practice as well as and 
+possible alternatives and future improvements to the work.
 
 \subsubsection{Parametrising the frequency server model}
 
-For the frequency server model the automatic approach worked just as expected 
-since the difference was small and located in one single place. Parametrisation 
+For the frequency server model the automatic approach worked just as expected, 
+since the difference was small and located in a single place. Parametrisation 
 is done automatically in exchange for some automatically generated interface 
-boilerplate.
+boilerplate code.
 
-The manual approach for frequency server allows to keep the 
-interface of both modules in the common side, but parametrisation of the 
+The manual approach for frequency server allows us to keep the 
+interface of both modules {\color{red}common}, but parametrisation of the 
 unmatched part must be done manually, for example through a macro or by 
 modifying the model manually.
 
 \paragraph{Automatic approach.}
 
-Parametrisation of the frequency server model was simple, the automatic 
-approach already generated a good result by itself and we could see that the 
-only unmatched method was the body of a precondition that in one was:
+The frequency server example was simple, and the automatic approach 
+already generated a good result by itself: we could see that the only 
+unmatched method was the body of a precondition that in one was:
 
 \begin{verbatim}
 callback_1(Alloc, Freq) -> not lists:member(Freq,Alloc).
@@ -1148,6 +1150,7 @@ and in the other:
 \begin{verbatim}
 callback_1(_Alloc, _Freq) -> false.
 \end{verbatim}
+
 
 For the automatic approach all the functions that existed in the input modules, 
 which in this case had common body, were replaced in both instances with simple 
@@ -1186,6 +1189,7 @@ results but the number of callbacks and common functions generated is
 high. Some preliminar clone removal reduces the ammount of functions 
 generated but it is still higher.
 
+
 The manual approach allows for more meaningful divisions, but we found 
 very useful to get assistance from a diff tool like \texttt{vimdiff}. Again we 
 can have a shared interface but we need to parametrise the model 
@@ -1199,7 +1203,7 @@ important part of the code automatically, and the result, one more time,
 preserves the behaviour of the original code. But on the first attempt, the 
 result of applying the automatic approach made it obvious that some prior clone 
 removal was necessary in order to avoid the creation of several identical 
-callbacks.
+callbacks.:
 
 Several of the extracted functions contained the same body, (in particular the 
 atoms \texttt{ets} and \texttt{dets} in both instances respectively). The reason 
@@ -1473,4 +1477,6 @@ Both the ILP based generalisation, and the Genetic Programming are only able to 
 
 The work reported here shows that we are able to automate the process of parametrising QuickCheck state machines -- that 
 is extended finite-state machines -- in line with different versions or configurations of a system.
+
+It also shows that we are able to transform non-parametric models into parametric ones by providing refactoring support in Wrangler for an ``introduce behaviour'' refactoring, as well as to provide decision support for parametrisation introduction by implementing a ``diff'' mechanism for models; moreover, we have shown how these facilities work in practice in a set of case studies.
 
