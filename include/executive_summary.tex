@@ -2,8 +2,26 @@
 \section*{Executive Summary}
 \addcontentsline{toc}{section}{Executive Summary}
 
+This deliverable reports work from the revised task descriptions as contained in Deliverable D8.1.1. In particular, for Task 3.3 it makes the advance
+\begin{quote}
+In order to support large-scale configuration, and also system evolution, we will develop parametrised models and properties which can be used to produce tests for all the configurations, and which can be evolved as single artefacts rather than one configuration at a time. Support for these models and properties will be implemented as QuickCheck libraries, and a set of case studies will be develop to illustrate how parametric models can be built.
+\end{quote}
+Parametrised models are supported as Erlang behaviours, and these can be tested in exactly the same way as standard, non-parametric models. This solution, rather than Erlang parametrised models, was chosen for two reasons. First testing is supported in precisely the same way as for non-parametric models, and secondly parametrised modules are a deprecated feature of Erlang and support for them is likely to be removed in future releases of Erlang.
 
-In working with industrial software systems it is usually necessary to keep several versions or configurations of 
-systems...
+We have provided further support for parametric modelling by implementing facilities to
+\begin{itemize}
+\item
+transform non-parametric models into parametric ones by providing refactoring support in Wrangler for an ``introduce behaviour'' refactoring, and its reverse, which unfolds a parametric model into a non-parametric model (Section \ref{sec:assisted-creation});
+\item
+provide decision support for parametrisation introduction by implementing a ``diff'' functionality for models, which will infer likely functionality for parametrisation from the difference of two Erlang modules (Section \ref{sec:identification});
+\item
+moreover, we have shown how these facilities work in practice in a set of case studies (Section \ref{sec:case-study}.
+\end{itemize}
+
+
+In using inference to find models of systems from the systems themselves, we have shown that finite state machine models can be inferred effectively, but in completing the work of Task 3.2 we show in Section \ref{EFSMInference} here that inference techniques can be extended to include machines with state data and conditional transitions. {\color{red} To be completed once the inference section is complete.}
+
+
+
 
 \clearpage
