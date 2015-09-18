@@ -1326,12 +1326,12 @@ An EFSM is formally defined as an 9-tuple $M = (S,L,I,O,D,G,U,F,T)$ where:
 \begin{itemize}
 \item{$S$ is a set of symbolic states}
 \item{$L$ is an alphabet of event labels}
-\item{$I$ is a vector space of inputs, $i_{1} .. i_{n}$}
-\item{$O$ is a vector space of outputs, $o_{1} .. o_{n}$}
-\item{$D$ is a vector space $r_{1} .. r_{n}$ that represents the internal \emph{data state} as a series of registers}
+\item{$I$ is a vector space of inputs, $i_{1} .. i_{n_i}$}
+\item{$O$ is a vector space of outputs, $o_{1} .. o_{n_o}$}
+\item{$D$ is a vector space $r_{1} .. r_{n_r}$ that represents the internal \emph{data state} as a series of registers}
 \item{$G$ is a set of boolean guard functions $g_{i} : (I \times D) \fun \bool$}
-\item{$U$ is a set of update functions that compute a new data state from the inputs and the previous data state $u_{i} : (I \times D) \fun D$}
-\item{$F$ is a set of output computation functions that produce the outputs from the data state and input parameters $f_{i} : (I \times D) \fun O$}
+\item{$U$ is a set of update functions that compute a new data state from the inputs and the previous data state $u_{n_u} : (I \times D) \fun D$}
+\item{$F$ is a set of output computation functions that produce the outputs from the data state and input parameters $f_{n_f} : (I \times D) \fun O$}
 \item{$T$ is a transition matrix $T : (S \times S) \fun \powerset (L \times G \times U \times F)$}
 \end{itemize}
 
@@ -1344,10 +1344,10 @@ The update and output functions use the assignment syntax $:=$ to identify the v
 The general form of a transition is: 
 
 \begin{center}
-$s_n \xrightarrow{e[g_1, .. g_n]/o_1, .. o_n [u_1, .. u_n]} s_m$ 
+$s_n \xrightarrow{e[g_1, .. g_{n_g}]/o_1, .. o_{n_o} [u_1, .. u_{n_u}]} s_m$ 
 \end{center}
 
-The arrow above represents a transition from state $S_n$ to $S_m$ with the event label $e$, restricted by guard expressions $g_1$ through $g_n$, producing outputs defined by $o_1$ through $o_n$, and updating the data state according to $u_1$ through $u_n$. The guard expressions are logically conjoined --- i.e. they must all be true for the transition to be allowed. Similarly, the output and update expressions should not be contradictory. In practice there will be one output or update expression for each output produced and each data state register that is altered. For example:
+The arrow above represents a transition from state $S_n$ to $S_m$ with the event label $e$, restricted by guard expressions $g_1$ through $g_{n_g}$, producing outputs defined by $o_1$ through $o_{n_o}$, and updating the data state according to $u_1$ through $u_{n_u}$. The guard expressions are logically conjoined --- i.e. they must all be true for the transition to be allowed. Similarly, the output and update expressions should not be contradictory. In practice there will be one output or update expression for each output produced and each data state register that is altered. For example:
 
 \begin{center}
 $s_n \xrightarrow{vend[r_{2} \geq 100]/o_{1} :=r_{1}[r_{2} := r_{2} - 100]} s_m$
@@ -1448,7 +1448,7 @@ To merge distinct guard expressions, the Athena implementation uses an approach 
 
 Where the merged transitions have different destinations will cause the Athena implementation to immediately attempt to merge the targets. A process of \emph{zipping} occurs as a state merge causes a chain of states to be merged with each other. This is a common occurrence where several branches of the PTA are really instances of the same behaviour and merging of their first element identifies this. In the event that a later element of the branches contradicts, this zipping can be undone --- either in part or in full --- by the contradiction resolution procedure described in \sect{Splitting}.
 
-Merging of output and update computation functions cannot be done by simple generalisation, since it must remain computable --- the EFSM models produced by the Athena implementation are intended to allow simulation as well as classification. However, due to the simple nature of the expression language it has been found that Genetic Programming \cite{} can be used effectively. The generic programming approach used int he Athena implementation begins with a population of randomly generated expressions over the input and register spaces and measures how many of the observed instances are correctly predicted by each member of the population. Those that predict the largest percentage of instances are retained and are both \emph{bred} and \emph{mutated} for subsequent rounds. 
+Merging of output and update computation functions cannot be done by simple generalisation, since it must remain computable --- the EFSM models produced by the Athena implementation are intended to allow simulation as well as classification, so they must be able to produce the outputs and new data state as well as confirm that they are acceptable. However, due to the simple nature of the expression language it has been found that Genetic Programming \cite{} can be used effectively. The generic programming approach used in the Athena implementation begins with a population of randomly generated expressions over the input and register spaces and measures how many of the observed instances are correctly predicted by each member of the population. Those that predict the largest percentage of instances are retained and are both \emph{bred} and \emph{mutated} for subsequent rounds. 
 
 The \emph{breeding} of two expressions operates on the abstract syntax tree of each expression, and cuts each tree at a random node. The sub-tree of one expression is then grafted onto this node of the other tree to form a new expressions. For example, $o_1 := i_1$ and $o_1 := i_2 - r_1$ might be bred to form $o_1 := i_1 - r_1$. This approach is particularly effective because it is often the case that a moderately accurate expression is referencing some of the correct parts of the state but not all, so the combinations can improve this.
 
