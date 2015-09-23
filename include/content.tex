@@ -36,7 +36,8 @@ Wrangler API and DSL that facilitate user-defined extensions of the tool.
 In many application areas, system variants are prevalent, and so multiple models are developed, which differ in some 
 aspects of behaviour but share overall structure as well as most aspects of behaviour. In such a situation, it is 
 desirable to develop parametric models, and the work reported here supports building parametrised models from existing 
-variants. It is worth emphasising again that this is \emph{parametrisation over functionality}, and not simply over 
+variants. It is worth emphasizing again that this is \emph{parametrisation over 
+functionality}, and not simply over 
 data, and so provides a general parametrisation framework.
 
 
@@ -100,8 +101,9 @@ been implemented by using Wrangler's DSL for composite refactorings.
 
 Several of the primitive refactorings, used by the new composite refactorings, already existed. Some of the 
 new refactorings were created through the use of the API for user-defined refactorings, and even some of the 
-refactorings that were created as internal extensions to Wrangler were based on existing ones, (e.g: the new copy 
-module refactoring was based on the existing rename module refactoring). For this reason, the work described in this 
+refactorings that were created as internal extensions to Wrangler were based on 
+existing ones. For example, the new copy module refactoring was based on the 
+existing rename module refactoring. For this reason, the work described in this 
 deliverable validates the effectiveness of Wrangler's DSL for extending the applicability of Wrangler.
 
 The refactoring for automatic behaviour extraction was implemented in its entirety as an internal extension to 
@@ -255,10 +257,10 @@ of the function to the \emph{behaviour instance} (see Section~\ref{sub:move_fun}
 \end{itemize}
 A limitation of this process is that the generated calls to the functions
 added to the \emph{behaviour instances} are statically targeted to
-the specified \emph{behaviour instance}, (e.g: a call will have the
+the specified \emph{behaviour instance}. For example, a call will have the
 form \texttt{server:start()} where \texttt{server} is the name of
 the \emph{behaviour instance} we just extracted, instead of \texttt{Module:start()}
-where \texttt{Module} is a variable). For the \emph{behaviour} to
+where \texttt{Module} is a variable. For the \emph{behaviour} to
 be able to use several \emph{behaviour instances}, it is necessary
 that these static calls are generalised somehow.
 
@@ -361,7 +363,7 @@ This functionality was actually implemented as two alternative refactorings:
 Arity\}} to \texttt{behaviour\_info}
 \item \emph{Add function name to behaviour\_info} --- adds a pair for each
 of the functions that are defined in the module and have the name
-specified (i.e: independently of their arity)
+specified, (i.e: independently of their arity)
 \end{itemize}
 Both versions of the refactoring were implemented as user-defined
 refactorings. Both create the \texttt{behaviour\_info} function if
@@ -482,7 +484,7 @@ selecting the module qualifier \texttt{new} in \texttt{bar/0}, and
 applying the refactoring \emph{Generalise Function Definition}, (in
 our case with the parameter name \texttt{Module}), and then moving
 the generated \texttt{bar/0} function to the module \texttt{new} by
-using the refactoring \emph{Move Function to Another Module} twice
+using the refactoring \emph{Move Function to Another Module} twice,
 (once to move \texttt{bar/0} to \texttt{new}, and once to bring \texttt{bar/1}
 back to \texttt{bar} from \texttt{new}).
 
@@ -548,9 +550,9 @@ For reverting the process we can call the refactoring \emph{Unfold
 behaviour instance} from the \emph{behaviour instance} module. We
 will be asked for a name to give to the resulting module, (in our
 case we chose \texttt{bar\_new}), and whether we want to point all
-dynamically-qualified callbacks to \texttt{new}, (in our case we chose
+dynamically-qualified callbacks to \texttt{new}. In our case we chose
 \texttt{yes}, in order to revert the adjustments made in 
-Section~\ref{sub:adjustments-for-generalisation}).
+Section~\ref{sub:adjustments-for-generalisation}.
 
 This will produce a module \texttt{bar\_new} like the one shown in
 Figure~\ref{fig:unfold_result}.
@@ -1029,7 +1031,7 @@ where values are returned and exported simultaneously from a clause.
 
 \begin{figure}
 \begin{minipage}[t]{1\textwidth}%
-\showcodehalfbox{figures/automatic_beh_inf/2-interference/2-out/mod1.erl}%
+\showcodebox{figures/automatic_beh_inf/2-interference/2-out/mod1.erl}%
 \end{minipage}
 
 \begin{minipage}[t]{1\textwidth}%
@@ -1080,7 +1082,6 @@ Section~\ref{sub:function-arity-collision}).
 
 \subsubsection{Function migration 
 artefact\label{sub:function-migration-artefact}}
-The headers of functions doin Erlang, as in many languages, are hard to
 The headers of functions in Erlang, as in many languages, are hard to
 divide through function extraction. Not being able to divide them
 means that if two functions are very similar but they have slightly
@@ -1141,9 +1142,10 @@ automated behaviour identification) in two QuickCheck models with two variants
 each:
 
 \begin{enumerate}
- \item models for testing ets and dets term storage libraries, which are part 
+ \item models for testing \texttt{ets} and \texttt{dets} term storage libraries, 
+which are part 
 of 
-the Erlang standard distibution;
+the Erlang standard distribution;
  \item models for testing the frequency server (extracted from 
 \cite{CesariniThompson} and used as a case study in \cite{ExtractingQC}).
 \end{enumerate}
@@ -1206,7 +1208,7 @@ but we could have found out with a tool like \texttt{vimdiff}, for example.
 
 We select the piece of code that changes in one of the input instances, and 
 apply the refactoring \texttt{Expression to behaviour instance} pointing to a 
-new unexisting module. The new module will contain the unmatched code for that 
+new nonexistent module. The new module will contain the unmatched code for that 
 version.
 
 We can now copy the instance we generated and modify the callbacks to contain 
@@ -1221,9 +1223,10 @@ our case study we replaced them with a macro that we called
 
 \subsubsection{Parametrising the ETS and DETS models}
 
-For the ets and dets models the automatic approach produces correct 
+For the \texttt{ets} and \texttt{dets} models the automatic approach produces 
+correct 
 results but the number of callbacks and common functions generated is 
-high. Some preliminar clone removal reduces the ammount of functions 
+high. Some preliminary clone removal reduces the amount of functions 
 generated but it is still higher.
 
 
@@ -1234,7 +1237,7 @@ manually.
 
 \paragraph{Automatic approach.}
 
-The models for \texttt{ets} and \texttt{dest} were more difficult to 
+The models for \texttt{ets} and \texttt{dets} were more difficult to 
 parametrise. For the ETS and DETS models, the automatic approach abstracts an 
 important part of the code automatically, and the result, one more time, 
 preserves the behaviour of the original code. But on the first attempt, the 
@@ -1272,7 +1275,8 @@ instances and it is technically correct to abstract it out.
 
 For the manual approach we used as starting point the modules with functions 
 \texttt{module\_name/0} and \texttt{table\_name/0} created for the automatic 
-aproach, and we were more conservative. For example, whenever several sentences 
+approach, and we were more conservative. For example, whenever several 
+sentences 
 or clauses changed within the same function, we considered parametrising the 
 whole function instead of several of its parts.
 
@@ -1317,7 +1321,7 @@ would require a more global approach instead of an iterative one.
 \subsection{EFSM Semantics}
 \label{EFSMSemantics}
 
-Extended Finite State Machines extend on conventional Finite State Machines by incorporating a \emph{data state} in addition to the \emph{control flow} state of the standard machine. This data state is described in \cite{EFSMs} as an n-dimensional space that can store values. The transition labels are extended to incorporate \emph{guards} (called \emph{enabling functions} in \cite{EFSMs}) that are boolean functions over the data space. The available transitions of the machine depend not only on its control flow state (as is the case for FSMs) but also on its data state, as some transitions may be prevented by their guards. Additionally, EFSM transition labels contain \emph{update} transformations that modify the data state if the transition is executed. 
+Extended Finite State Machines extend conventional Finite State Machines by incorporating a \emph{data state} in addition to the \emph{control flow} state of the standard machine. This data state is described in \cite{EFSMs} as an n-dimensional space that can store values. The transition labels are extended to incorporate \emph{guards} (called \emph{enabling functions} in \cite{EFSMs}) that are boolean functions over the data space. The available transitions of the machine depend not only on its control flow state (as is the case for FSMs) but also on its data state, as some transitions may be prevented by their guards. Additionally, EFSM transition labels contain \emph{update} transformations that modify the data state if the transition is executed. 
 
 The model of EFSMs used in this paper extends on that from \cite{EFSMs}, where the guard and update transitions operated solely on the data state. The model used here makes the guard and update transitions functions over both the data state and the inputs. This allows the machine to express guards on parameterised, named events, and to incorporate input parameters into its data state.
   
