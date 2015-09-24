@@ -52,7 +52,7 @@ that its \emph{behaviour instances} must implement. This can be done
 in one of two ways:
 
 \begin{itemize}
-\item Through \texttt{callback} declarations, which specify the expected
+\item Through \texttt{-callback} declarations, which specify the expected
 callbacks and their type signatures. For example:
 {\small
 \begin{verbatim}
@@ -77,10 +77,13 @@ behaviour_info(_) -> undefined.
 \end{itemize}
 
 In this work we have only considered the \texttt{behaviour\_info/1}
-function because, currently, there is limited support for \texttt{callback}
+function because, currently, there is limited support for \texttt{-callback}
 declarations by the abstract syntax tools. These two approaches are
 mutually exclusive, the Erlang compiler will complain if both are
-used at the same time.
+used at the same time. The work reported here can be extended to the \texttt{-callback}
+declaration approach in a straightforward way, given q specification of the type(s) of the function(s)
+in question, which can come either from the user -- who might indeed have declared types for the functions 
+already -- or using dialyzer/typer type inference. 
 
 Each \textbf{behaviour instance} is an Erlang module that must implement the callbacks
 defined by the \emph{behaviour definition} and contain a \texttt{behaviour}
