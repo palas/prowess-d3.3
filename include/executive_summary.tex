@@ -19,7 +19,12 @@ moreover, we have shown how these facilities work in practice in a set of case s
 \end{itemize}
 
 
-In using inference to find models of systems from the systems themselves, we have shown that finite state machine models can be inferred effectively, but in completing the work of Task 3.2 we show in Section \ref{EFSMInference} here that inference techniques can be extended to include machines with state data and conditional transitions. {\color{red} To be completed once the inference section is complete.}
+
+Extended Finite State Machines extend conventional Finite State Machines by incorporating a data state in addition to the control flow state of the standard machine. The transition labels are extended to incorporate guards that are boolean functions over the data space. The available transitions of the machine depend not only on its control flow state (as is the case for FSMs) but also on its data state, as some transitions may be prevented by their guards. Additionally, EFSM transition labels contain update transformations that modify the data state if the transition is executed. 
+
+In using inference to find models of systems from the systems themselves, we have shown that finite state machine models can be inferred effectively, but in completing the work of Task 3.2 we show in Section \ref{EFSMInference} here that inference techniques can be extended to include machines with state data and conditional transitions. This is illustrated with a running example, and is the subject of a pilot study too.
+
+
 
 
 
