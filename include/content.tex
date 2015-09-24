@@ -1018,12 +1018,12 @@ program. To avoid this, whenever variables are exported, we will only
 create artificial block expressions that do not contain the last expression
 of a clause. We do not have to worry about modifying the value of
 intermediate sentences in clauses, because we know that these values
-were discarded in the original code, (e.g: in the code of 
+were discarded in the original code. For example, in the code of 
 Figure~\ref{fig:interference-input},
 we cannot extract a common function for the whole clause of the \texttt{case}
 expression because it both exports and returns values, but we can
 create one function for the last expression and one for the rest as
-shown in Figure~\ref{fig:interference-output}). This does not produce an ideal 
+shown in Figure~\ref{fig:interference-output}. This does not produce an ideal 
 solution in every
 case, and it is only implemented when the frontier link is in a clause,
 but without it the previous approaches would modify behaviour in cases
@@ -1379,7 +1379,7 @@ This model doesn't define any limits on the chosen products, nor does it allow t
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[width=13cm]{figures/efsm/vend-complicated.pdf}
+\hspace*{-1.5cm}\includegraphics[width=18cm]{figures/efsm/vend-complicated.pdf}
 \caption{A more complicated machine EFSM}
 \label{fig:vendcomplicated}
 \end{center}
