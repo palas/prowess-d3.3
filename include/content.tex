@@ -118,8 +118,13 @@ The branch of Wrangler containing these extensions and the code for case studies
 
 \subsection{Extended Finite State Machine Inference}
 
-[FIXME: introduction]
-[previous deliverables]
+The previous components of this work package have included various applications of Finite State Machine Inference \cite{d31,d32}. This was shown to be a powerful and valuable technique for both understanding the behaviour of a particular system, and capturing and visualising the differences between versions of systems. However, since Finite State Machines (FSMs) model systems as a series of states with atomic events transitioning between them they are incapable of modelling parameterised systems whose behaviour is dependent on data (at least for a practical limit on the number of states).
+
+Extended Finite State Machines (EFSMs) \cite{EFSMs} extend the atomic transitions of FSMs to include parameters on the events, data registers within the state, guard expressions over the data state, and update functions to modify the data state. Taking the existing, successful work on inferring FSMs and using them to model behaviour differences, and extending this to EFSMs was a natural way to apply this work to parameterised systems.
+
+Inferring EFSMs has several additional complexities over inferring FSMs, since not only the \emph{control flow} states of the system, but also the composition and use of the \emph{data state} must be considered. Previous expertise developed at USFD, in conjunction with other researchers \cite{NeilEFSMs}, was leveraged to allow a prototype inference tool to be developed within the timeframes of this task. The open-source Athena tool \cite{Athena} has been constructed and released as a prototype to demonstrate the feasibility and value of EFSM inference for understanding parameterised systems.
+
+By applying EFSM inference to different versions of parameterised systems produces models that include the differences in the parametric or data-driven behaviours. This demonstrates the potential to apply differencing and visualisation techniques to these extended models, in a similar way to their application to finite state models in previous deliverables \cite{d31,d32}. 
 
 \section{Related Work}
 \label{related_work}
